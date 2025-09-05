@@ -2,21 +2,26 @@
 
 /* MODULE INTERNAL STATE */
 
+static CompilerState * _compilerState = NULL;
 static Logger * _logger = NULL;
 
-void initializeBisonActionsModule() {
-	_logger = createLogger("BisonActions");
-}
-
-void shutdownBisonActionsModule() {
+/** Shutdown module's internal state. */
+void _shutdownBisonActionsModule() {
 	if (_logger != NULL) {
+		logDebugging(_logger, "Destroying module: BisonActions...");
 		destroyLogger(_logger);
+		_logger = NULL;
 	}
+	_compilerState = NULL;
 }
 
-/** IMPORTED FUNCTIONS */
+ModuleDestructor initializeBisonActionsModule(CompilerState * compilerState) {
+	_compilerState = compilerState;
+	_logger = createLogger("BisonActions");
+	return _shutdownBisonActionsModule;
+}
 
-extern unsigned int flexCurrentContext(void);
+/* IMPORTED FUNCTIONS */
 
 /* PRIVATE FUNCTIONS */
 
@@ -71,17 +76,10 @@ Factor * ExpressionFactorSemanticAction(Expression * expression) {
 	return factor;
 }
 
-Program * ExpressionProgramSemanticAction(CompilerState * compilerState, Expression * expression) {
+Program * ExpressionProgramSemanticAction(Expression * expression) {
 	_logSyntacticAnalyzerAction(__FUNCTION__);
 	Program * program = calloc(1, sizeof(Program));
 	program->expression = expression;
-	compilerState->abstractSyntaxtTree = program;
-	if (0 < flexCurrentContext()) {
-		logError(_logger, "The final context is not the default (0): %d", flexCurrentContext());
-		compilerState->succeed = false;
-	}
-	else {
-		compilerState->succeed = true;
-	}
+	_compilerState->abstractSyntaxtTree = program;
 	return program;
 }

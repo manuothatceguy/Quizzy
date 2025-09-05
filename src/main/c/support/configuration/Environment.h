@@ -1,7 +1,7 @@
 #ifndef ENVIRONMENT_HEADER
 #define ENVIRONMENT_HEADER
 
-#include "Type.h"
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -10,7 +10,7 @@
  * "true"; false otherwise. The default value is only used when the variable
  * is undefined.
  */
-const boolean getBooleanOrDefault(const char * name, const boolean defaultValue);
+const bool getBooleanOrDefault(const char * name, const bool defaultValue);
 
 /**
  * Gets the value of an environment variable by name, or returns a default

@@ -1,34 +1,18 @@
 #ifndef FLEX_ACTIONS_HEADER
 #define FLEX_ACTIONS_HEADER
 
-#include "../../shared/Environment.h"
-#include "../../shared/Logger.h"
-#include "../../shared/String.h"
-#include "../../shared/Type.h"
-#include "../syntactic-analysis/AbstractSyntaxTree.h"
-#include "../syntactic-analysis/BisonParser.h"
-#include "LexicalAnalyzerContext.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include "../../support/configuration/Environment.h"
+#include "../../support/language/String.h"
+#include "../../support/logging/Logger.h"
+#include "../../support/type/CompilationStatus.h"
+#include "../../support/type/FlexContext.h"
+#include "../../support/type/LexicalAnalyzer.h"
+#include "../../support/type/ModuleDestructor.h"
+#include "../../support/type/Token.h"
+#include "../../support/type/TokenLabel.h"
+#include "../Frontend.h"
 
 /** Initialize module's internal state. */
-void initializeFlexActionsModule();
-
-/** Shutdown module's internal state. */
-void shutdownFlexActionsModule();
-
-/**
- * Flex lexeme processing actions.
- */
-
-void BeginMultilineCommentLexemeAction(LexicalAnalyzerContext * lexicalAnalyzerContext);
-void EndMultilineCommentLexemeAction(LexicalAnalyzerContext * lexicalAnalyzerContext);
-void IgnoredLexemeAction(LexicalAnalyzerContext * lexicalAnalyzerContext);
-
-Token ArithmeticOperatorLexemeAction(LexicalAnalyzerContext * lexicalAnalyzerContext, Token token);
-Token IntegerLexemeAction(LexicalAnalyzerContext * lexicalAnalyzerContext);
-Token ParenthesisLexemeAction(LexicalAnalyzerContext * lexicalAnalyzerContext, Token token);
-
-Token UnknownLexemeAction(LexicalAnalyzerContext * lexicalAnalyzerContext);
+ModuleDestructor initializeFlexActionsModule();
 
 #endif

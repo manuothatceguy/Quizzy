@@ -6,18 +6,23 @@ const char _indentationCharacter = ' ';
 const char _indentationSize = 4;
 static Logger * _logger = NULL;
 
-void initializeGeneratorModule() {
-	_logger = createLogger("Generator");
+/** Shutdown module's internal state. */
+void _shutdownGeneratorModule() {
+	if (_logger != NULL) {
+		logDebugging(_logger, "Destroying module: Generator...");
+		destroyLogger(_logger);
+		_logger = NULL;
+	}
 }
 
-void shutdownGeneratorModule() {
-	if (_logger != NULL) {
-		destroyLogger(_logger);
-	}
+ModuleDestructor initializeGeneratorModule() {
+	_logger = createLogger("Generator");
+	return _shutdownGeneratorModule;
 }
 
 /** PRIVATE FUNCTIONS */
 
+static char * _indentation(const unsigned int indentationLevel);
 static const char _expressionTypeToCharacter(const ExpressionType type);
 static void _generateConstant(const unsigned int indentationLevel, Constant * constant);
 static void _generateEpilogue(const int value);
@@ -25,7 +30,6 @@ static void _generateExpression(const unsigned int indentationLevel, Expression 
 static void _generateFactor(const unsigned int indentationLevel, Factor * factor);
 static void _generateProgram(Program * program);
 static void _generatePrologue(void);
-static char * _indentation(const unsigned int indentationLevel);
 static void _output(const unsigned int indentationLevel, const char * const format, ...);
 
 /**
@@ -165,7 +169,7 @@ static void _output(const unsigned int indentationLevel, const char * const form
 
 /** PUBLIC FUNCTIONS */
 
-void generate(CompilerState * compilerState) {
+void executeGenerator(CompilerState * compilerState) {
 	logDebugging(_logger, "Generating final output...");
 	_generatePrologue();
 	_generateProgram(compilerState->abstractSyntaxtTree);

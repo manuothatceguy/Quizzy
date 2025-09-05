@@ -4,14 +4,18 @@
 
 static Logger * _logger = NULL;
 
-void initializeCalculatorModule() {
-	_logger = createLogger("Calculator");
+/** Shutdown module's internal state. */
+void _shutdownCalculatorModule() {
+	if (_logger != NULL) {
+		logDebugging(_logger, "Destroying module: Calculator...");
+		destroyLogger(_logger);
+		_logger = NULL;
+	}
 }
 
-void shutdownCalculatorModule() {
-	if (_logger != NULL) {
-		destroyLogger(_logger);
-	}
+ModuleDestructor initializeCalculatorModule() {
+	_logger = createLogger("Calculator");
+	return _shutdownCalculatorModule;
 }
 
 /** PRIVATE FUNCTIONS */
@@ -49,7 +53,7 @@ static ComputationResult _invalidBinaryOperator(const int x, const int y) {
  */
 static ComputationResult _invalidComputation() {
 	ComputationResult computationResult = {
-		.succeed = false,
+		.succeeded = false,
 		.value = 0
 	};
 	return computationResult;
@@ -59,7 +63,7 @@ static ComputationResult _invalidComputation() {
 
 ComputationResult add(const int leftAddend, const int rightAddend) {
 	ComputationResult computationResult = {
-		.succeed = true,
+		.succeeded = true,
 		.value = leftAddend + rightAddend
 	};
 	return computationResult;
@@ -67,12 +71,12 @@ ComputationResult add(const int leftAddend, const int rightAddend) {
 
 ComputationResult divide(const int dividend, const int divisor) {
 	const int sign = dividend < 0 ? -1 : +1;
-	const boolean divisionByZero = divisor == 0 ? true : false;
+	const bool divisionByZero = divisor == 0 ? true : false;
 	if (divisionByZero) {
 		logError(_logger, "The divisor cannot be zero (the computation was %d/%d).", dividend, divisor);
 	}
 	ComputationResult computationResult = {
-		.succeed = divisionByZero ? false : true,
+		.succeeded = divisionByZero ? false : true,
 		.value = divisionByZero ? (sign * INT_MAX) : (dividend / divisor)
 	};
 	return computationResult;
@@ -80,7 +84,7 @@ ComputationResult divide(const int dividend, const int divisor) {
 
 ComputationResult multiply(const int multiplicand, const int multiplier) {
 	ComputationResult computationResult = {
-		.succeed = true,
+		.succeeded = true,
 		.value = multiplicand * multiplier
 	};
 	return computationResult;
@@ -88,7 +92,7 @@ ComputationResult multiply(const int multiplicand, const int multiplier) {
 
 ComputationResult subtract(const int minuend, const int subtract) {
 	ComputationResult computationResult = {
-		.succeed = true,
+		.succeeded = true,
 		.value = minuend - subtract
 	};
 	return computationResult;
@@ -96,7 +100,7 @@ ComputationResult subtract(const int minuend, const int subtract) {
 
 ComputationResult computeConstant(Constant * constant) {
 	ComputationResult computationResult = {
-		.succeed = true,
+		.succeeded = true,
 		.value = constant->value
 	};
 	return computationResult;
@@ -110,7 +114,7 @@ ComputationResult computeExpression(Expression * expression) {
 		case SUBTRACTION:
 			ComputationResult leftResult = computeExpression(expression->leftExpression);
 			ComputationResult rightResult = computeExpression(expression->rightExpression);
-			if (leftResult.succeed && rightResult.succeed) {
+			if (leftResult.succeeded && rightResult.succeeded) {
 				BinaryOperator binaryOperator = _expressionTypeToBinaryOperator(expression->type);
 				return binaryOperator(leftResult.value, rightResult.value);
 			}
@@ -133,4 +137,9 @@ ComputationResult computeFactor(Factor * factor) {
 		default:
 			return _invalidComputation();
 	}
+}
+
+ComputationResult executeCalculator(CompilerState * compilerState) {
+	Program * program = compilerState->abstractSyntaxtTree;
+	return computeExpression(program->expression);
 }

@@ -1,17 +1,17 @@
 #ifndef ABSTRACT_SYNTAX_TREE_HEADER
 #define ABSTRACT_SYNTAX_TREE_HEADER
 
-#include "../../shared/Logger.h"
+#include "../../support/logging/Logger.h"
+#include "../../support/type/ModuleDestructor.h"
 #include <stdlib.h>
 
 /** Initialize module's internal state. */
-void initializeAbstractSyntaxTreeModule();
-
-/** Shutdown module's internal state. */
-void shutdownAbstractSyntaxTreeModule();
+ModuleDestructor initializeAbstractSyntaxTreeModule();
 
 /**
- * This typedefs allows self-referencing types.
+ * This type definitions allows self-referencing types (e.g., an expression
+ * that is made of another expressions, such as talking about you in 3rd
+ * person, but without the madness).
  */
 
 typedef enum ExpressionType ExpressionType;
@@ -67,11 +67,12 @@ struct Program {
 };
 
 /**
- * Node recursive destructors.
+ * Node recursive super-duper-trambolik-destructors.
  */
-void releaseConstant(Constant * constant);
-void releaseExpression(Expression * expression);
-void releaseFactor(Factor * factor);
-void releaseProgram(Program * program);
+
+void destroyConstant(Constant * constant);
+void destroyExpression(Expression * expression);
+void destroyFactor(Factor * factor);
+void destroyProgram(Program * program);
 
 #endif

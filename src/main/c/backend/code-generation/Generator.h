@@ -2,21 +2,19 @@
 #define GENERATOR_HEADER
 
 #include "../../frontend/syntactic-analysis/AbstractSyntaxTree.h"
-#include "../../shared/CompilerState.h"
-#include "../../shared/Logger.h"
-#include "../../shared/String.h"
+#include "../../support/language/String.h"
+#include "../../support/logging/Logger.h"
+#include "../../support/type/CompilerState.h"
+#include "../../support/type/ModuleDestructor.h"
 #include <stdarg.h>
 #include <stdio.h>
 
 /** Initialize module's internal state. */
-void initializeGeneratorModule();
-
-/** Shutdown module's internal state. */
-void shutdownGeneratorModule();
+ModuleDestructor initializeGeneratorModule();
 
 /**
  * Generates the final output using the current compiler state.
  */
-void generate(CompilerState * compilerState);
+void executeGenerator(CompilerState * compilerState);
 
 #endif

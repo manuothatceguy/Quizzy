@@ -7,22 +7,21 @@
  * domain-specific models or DTOs (Data Transfer Objects).
  */
 #include "../../frontend/syntactic-analysis/AbstractSyntaxTree.h"
-#include "../../shared/Logger.h"
-#include "../../shared/Type.h"
+#include "../../support/logging/Logger.h"
+#include "../../support/type/CompilerState.h"
+#include "../../support/type/ModuleDestructor.h"
 #include <limits.h>
+#include <stdbool.h>
 
 /** Initialize module's internal state. */
-void initializeCalculatorModule();
-
-/** Shutdown module's internal state. */
-void shutdownCalculatorModule();
+ModuleDestructor initializeCalculatorModule();
 
 /**
  * The result of a computation. It's considered valid only if "succeed" is
  * true.
  */
 typedef struct {
-	boolean succeed;
+	bool succeeded;
 	int value;
 } ComputationResult;
 
@@ -49,5 +48,10 @@ ComputationResult computeExpression(Expression * expression);
  * Computes the final value of a mathematical factor.
  */
 ComputationResult computeFactor(Factor * factor);
+
+/**
+ * Computes the program value using the current compiler state.
+ */
+ComputationResult executeCalculator(CompilerState * compilerState);
 
 #endif

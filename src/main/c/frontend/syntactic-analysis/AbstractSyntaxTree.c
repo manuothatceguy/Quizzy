@@ -4,26 +4,30 @@
 
 static Logger * _logger = NULL;
 
-void initializeAbstractSyntaxTreeModule() {
-	_logger = createLogger("AbstractSyntxTree");
-}
-
-void shutdownAbstractSyntaxTreeModule() {
+/** Shutdown module's internal state. */
+void _shutdownAbstractSyntaxTreeModule() {
 	if (_logger != NULL) {
+		logDebugging(_logger, "Destroying module: AbstractSyntaxTree...");
 		destroyLogger(_logger);
+		_logger = NULL;
 	}
 }
 
-/** PUBLIC FUNCTIONS */
+ModuleDestructor initializeAbstractSyntaxTreeModule() {
+	_logger = createLogger("AbstractSyntaxTree");
+	return _shutdownAbstractSyntaxTreeModule;
+}
 
-void releaseConstant(Constant * constant) {
+/* PUBLIC FUNCTIONS */
+
+void destroyConstant(Constant * constant) {
 	logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
 	if (constant != NULL) {
 		free(constant);
 	}
 }
 
-void releaseExpression(Expression * expression) {
+void destroyExpression(Expression * expression) {
 	logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
 	if (expression != NULL) {
 		switch (expression->type) {
@@ -31,36 +35,36 @@ void releaseExpression(Expression * expression) {
 			case DIVISION:
 			case MULTIPLICATION:
 			case SUBTRACTION:
-				releaseExpression(expression->leftExpression);
-				releaseExpression(expression->rightExpression);
+				destroyExpression(expression->leftExpression);
+				destroyExpression(expression->rightExpression);
 				break;
 			case FACTOR:
-				releaseFactor(expression->factor);
+				destroyFactor(expression->factor);
 				break;
 		}
 		free(expression);
 	}
 }
 
-void releaseFactor(Factor * factor) {
+void destroyFactor(Factor * factor) {
 	logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
 	if (factor != NULL) {
 		switch (factor->type) {
 			case CONSTANT:
-				releaseConstant(factor->constant);
+				destroyConstant(factor->constant);
 				break;
 			case EXPRESSION:
-				releaseExpression(factor->expression);
+				destroyExpression(factor->expression);
 				break;
 		}
 		free(factor);
 	}
 }
 
-void releaseProgram(Program * program) {
+void destroyProgram(Program * program) {
 	logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
 	if (program != NULL) {
-		releaseExpression(program->expression);
+		destroyExpression(program->expression);
 		free(program);
 	}
 }

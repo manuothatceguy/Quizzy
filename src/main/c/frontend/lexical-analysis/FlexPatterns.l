@@ -1,15 +1,32 @@
+%top{
+
+#include "../../support/type/CompilationStatus.h"
+#include "../../support/type/FlexContext.h"
+#include "../../support/type/TokenLabel.h"
+#include "../syntactic-analysis/AbstractSyntaxTree.h"
+#include "../syntactic-analysis/BisonParser.h"
+
+}
+
 %{
 
-#include "FlexActions.h"
+/**
+ * @see https://westes.github.io/flex/manual/Definitions-Section.html#Definitions-Section
+ */
 
-static YY_BUFFER_STATE importedExpressionBufferState = NULL;
+extern CompilationStatus ArithmeticOperatorLexemeAction(TokenLabel label);
+extern CompilationStatus EnterImportExpressionLexemeAction(FlexContext context);
+extern CompilationStatus EnterMultilineCommentLexemeAction(FlexContext context);
+extern CompilationStatus EOFLexemeAction();
+extern CompilationStatus IgnoredLexemeAction();
+extern CompilationStatus IntegerLexemeAction();
+extern CompilationStatus LeaveImportExpressionLexemeAction();
+extern CompilationStatus LeaveMultilineCommentLexemeAction();
+extern CompilationStatus ParenthesisLexemeAction(TokenLabel label);
+extern CompilationStatus SubexpressionLexemeAction();
+extern CompilationStatus UnknownLexemeAction();
 
 %}
-
-/**
- * Enable start condition manipulation functions.
- */
-%option stack
 
 /**
  * Flex contexts (a.k.a. start conditions).
@@ -25,61 +42,48 @@ static YY_BUFFER_STATE importedExpressionBufferState = NULL;
  * @see https://westes.github.io/flex/manual/Matching.html
  * @see https://westes.github.io/flex/manual/Patterns.html
  */
+whitespace			[[:space:]]+
 
 %%
 
-"/*"								{ BEGIN(MULTILINE_COMMENT); BeginMultilineCommentLexemeAction(createLexicalAnalyzerContext()); }
-<MULTILINE_COMMENT>"*/"				{ EndMultilineCommentLexemeAction(createLexicalAnalyzerContext()); BEGIN(INITIAL); }
-<MULTILINE_COMMENT>[[:space:]]+		{ IgnoredLexemeAction(createLexicalAnalyzerContext()); }
-<MULTILINE_COMMENT>[^*]+			{ IgnoredLexemeAction(createLexicalAnalyzerContext()); }
-<MULTILINE_COMMENT>.				{ IgnoredLexemeAction(createLexicalAnalyzerContext()); }
+%{
 
-"-"									{ return ArithmeticOperatorLexemeAction(createLexicalAnalyzerContext(), SUB); }
-"*"									{ return ArithmeticOperatorLexemeAction(createLexicalAnalyzerContext(), MUL); }
-"/"									{ return ArithmeticOperatorLexemeAction(createLexicalAnalyzerContext(), DIV); }
-"+"									{ return ArithmeticOperatorLexemeAction(createLexicalAnalyzerContext(), ADD); }
+/**
+ * @see https://westes.github.io/flex/manual/Rules-Section.html#Rules-Section
+ */
 
-"("									{ return ParenthesisLexemeAction(createLexicalAnalyzerContext(), OPEN_PARENTHESIS); }
-")"									{ return ParenthesisLexemeAction(createLexicalAnalyzerContext(), CLOSE_PARENTHESIS); }
+%}
 
-"{"									{
-										printf("%s", "[FlexPatterns] Context-switch to IMPORT_EXPRESSION.\n");
-										BEGIN(IMPORT_EXPRESSION);
-									}
+"{"									{ return EnterImportExpressionLexemeAction(IMPORT_EXPRESSION); }
+<IMPORT_EXPRESSION>[^{}]+			{ return SubexpressionLexemeAction(); }
+<IMPORT_EXPRESSION>"}"				{ return LeaveImportExpressionLexemeAction(); }
+<IMPORT_EXPRESSION>.				{ return UnknownLexemeAction(); }
 
-<IMPORT_EXPRESSION>[^{}]+			{
-										LexicalAnalyzerContext * lexicalAnalyzerContext = createLexicalAnalyzerContext();
-										printf("[FlexPatterns] Creating next buffer to consume from file '%s'.\n", lexicalAnalyzerContext->lexeme);
-										yyin = fopen(lexicalAnalyzerContext->lexeme, "r");
-										importedExpressionBufferState = yy_create_buffer(yyin, YY_BUF_SIZE);
-										destroyLexicalAnalyzerContext(lexicalAnalyzerContext);
-									}
+"/*"								{ return EnterMultilineCommentLexemeAction(MULTILINE_COMMENT); }
+<MULTILINE_COMMENT>"*/"				{ return LeaveMultilineCommentLexemeAction(); }
+<MULTILINE_COMMENT>[^*]+			{ return IgnoredLexemeAction(); }
+<MULTILINE_COMMENT>.				{ return IgnoredLexemeAction(); }
 
-<IMPORT_EXPRESSION>"}"				{
-										printf("%s", "[FlexPatterns] Loading next buffer from imported expression.\n");
-										yypush_buffer_state(importedExpressionBufferState);
-										BEGIN(INITIAL);
-									}
+"-"									{ return ArithmeticOperatorLexemeAction(SUB); }
+"*"									{ return ArithmeticOperatorLexemeAction(MUL); }
+"/"									{ return ArithmeticOperatorLexemeAction(DIV); }
+"+"									{ return ArithmeticOperatorLexemeAction(ADD); }
 
-<IMPORT_EXPRESSION>.				{
-										printf("%s", "[FlexPatterns] Syntax error inside import expression.\n");
-										return UnknownLexemeAction(createLexicalAnalyzerContext());
-									}
+"("									{ return ParenthesisLexemeAction(OPEN_PARENTHESIS); }
+")"									{ return ParenthesisLexemeAction(CLOSE_PARENTHESIS); }
 
-<<EOF>>								{
-										printf("%s", "[FlexPatterns] EOF, poping buffer.\n");
-										yypop_buffer_state();
-										if (!YY_CURRENT_BUFFER) {
-											// Signals Bison to stop the parsing if there is no more input buffers in the stack.
-											yyterminate();
-										}
-									}
+[[:digit:]]+						{ return IntegerLexemeAction(); }
 
-[[:digit:]]+						{ return IntegerLexemeAction(createLexicalAnalyzerContext()); }
+{whitespace}						{ return IgnoredLexemeAction(); }
+.									{ return UnknownLexemeAction(); }
 
-[[:space:]]+						{ IgnoredLexemeAction(createLexicalAnalyzerContext()); }
-.									{ return UnknownLexemeAction(createLexicalAnalyzerContext()); }
+<<EOF>>								{ return EOFLexemeAction(); }
 
 %%
 
+/**
+ * @see https://westes.github.io/flex/manual/User-Code-Section.html#User-Code-Section
+ */
+
+#include "FlexActions.h"
 #include "FlexExport.h"

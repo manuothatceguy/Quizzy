@@ -13,7 +13,8 @@ if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	# Compiles the parser with Bison, generating counter-examples in case S/R or R/R conflicts exists.
 	add_custom_command(
 		OUTPUT ../src/main/c/frontend/syntactic-analysis/BisonParser.c ../src/main/c/frontend/syntactic-analysis/BisonParser.h
-		COMMAND bison -Wcounterexamples -d ../src/main/c/frontend/syntactic-analysis/BisonGrammar.y --output=../src/main/c/frontend/syntactic-analysis/BisonParser.c)
+		COMMAND ../src/main/bash/bison.sh
+	)
 
 	# Options for GCC.
 	add_compile_options(-fsanitize=address)
@@ -24,9 +25,10 @@ if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
 
 	# Compiles the scanner with Flex.
 	add_custom_command(
-		OUTPUT ../src/main/c/frontend/lexical-analysis/FlexScanner.c
-		COMMAND flex --noyywrap --outfile=../src/main/c/frontend/lexical-analysis/FlexScanner.c --yylineno ../src/main/c/frontend/lexical-analysis/FlexPatterns.l
-		DEPENDS ../src/main/c/frontend/syntactic-analysis/BisonParser.c ../src/main/c/frontend/syntactic-analysis/BisonParser.h)
+		OUTPUT ../src/main/c/frontend/lexical-analysis/FlexScanner.c ../src/main/c/frontend/lexical-analysis/FlexScanner.h
+		COMMAND ../src/main/bash/flex.sh
+		DEPENDS ../src/main/c/frontend/syntactic-analysis/BisonParser.c ../src/main/c/frontend/syntactic-analysis/BisonParser.h
+	)
 
 	# Defines the entry-point of the application, and the source-codes (*.c extension).
 	# The header files (*.h extension), are automatically included from the source-codes.
@@ -34,16 +36,15 @@ if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
 		src/main/c/backend/code-generation/Generator.c
 		src/main/c/backend/domain-specific/Calculator.c
 		src/main/c/EntryPoint.c
+		src/main/c/frontend/Frontend.c
 		src/main/c/frontend/lexical-analysis/FlexActions.c
 		src/main/c/frontend/lexical-analysis/FlexScanner.c
-		src/main/c/frontend/lexical-analysis/LexicalAnalyzerContext.c
 		src/main/c/frontend/syntactic-analysis/AbstractSyntaxTree.c
 		src/main/c/frontend/syntactic-analysis/BisonActions.c
 		src/main/c/frontend/syntactic-analysis/BisonParser.c
-		src/main/c/frontend/syntactic-analysis/SyntacticAnalyzer.c
-		src/main/c/shared/Environment.c
-		src/main/c/shared/Logger.c
-		src/main/c/shared/String.c
+		src/main/c/support/configuration/Environment.c
+		src/main/c/support/language/String.c
+		src/main/c/support/logging/Logger.c
 		# Add more *.c files if needed (otherwise, they won't be compiled).
 		# ...
 	)
