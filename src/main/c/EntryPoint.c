@@ -36,16 +36,19 @@ const int main(const int length, const char ** arguments) {
 	if (compilationStatus == SUCCEEDED) {
 		// ----------------------------------------------------------------------------------------
 		// Beginning of the Backend... ------------------------------------------------------------
-		logDebugging(logger, "Computing expression value...");
-		ComputationResult computationResult = executeCalculator(&compilerState);
-		if (computationResult.succeeded) {
-			compilerState.value = computationResult.value;
-			executeGenerator(&compilerState);
-		}
-		else {
-			logError(logger, "The computation phase rejects the input program.");
-			compilationStatus = FAILED;
-		}
+
+		// comentado porque solo vamos a hacer el front (por ahora!)
+
+		// logDebugging(logger, "Computing expression value...");
+		// ComputationResult computationResult = executeCalculator(&compilerState);
+		// if (computationResult.succeeded) {
+		// 	compilerState.value = computationResult.value;
+		// 	executeGenerator(&compilerState);
+		// }
+		// else {
+		// 	logError(logger, "The computation phase rejects the input program.");
+		// 	compilationStatus = FAILED;
+		// }
 		// ...end of the Backend. -----------------------------------------------------------------
 		// ----------------------------------------------------------------------------------------
 	}
