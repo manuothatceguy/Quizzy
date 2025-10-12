@@ -6,21 +6,55 @@
 #include "../../support/type/ModuleDestructor.h"
 #include "../../support/type/TokenLabel.h"
 #include "AbstractSyntaxTree.h"
-#include "BisonParser.h"
+#include "BisonParser.h" 
 #include <stdlib.h>
 
 /** Initialize module's internal state. */
 ModuleDestructor initializeBisonActionsModule();
 
-/**
- * Bison semantic actions.
- */
+typedef enum {
+    KEYWORD_POINTS,
+    KEYWORD_SCORE,
+    KEYWORD_TIMELEFT
+} KeywordType;
 
-Constant * IntegerConstantSemanticAction(const int value);
-Expression * ArithmeticExpressionSemanticAction(Expression * leftExpression, Expression * rightExpression, ExpressionType type);
-Expression * FactorExpressionSemanticAction(Factor * factor);
-Factor * ConstantFactorSemanticAction(Constant * constant);
-Factor * ExpressionFactorSemanticAction(Expression * expression);
-Program * ExpressionProgramSemanticAction(Expression * expression);
+Program * ProgramSemanticAction(QuizNode * quiz);
+QuizNode * QuizBlockSemanticAction(ListNode * body);
+QuestionNode * QuestionSemanticAction(ListNode * body);
 
-#endif
+BodyNode * CreateBodyNodeFromAttribute(AttributeNode * attr);
+BodyNode * CreateBodyNodeFromScoring(ScoringNode * scoring);
+BodyNode * CreateBodyNodeFromQuestions(QuestionsBlockNode * questions);
+BodyNode * CreateBodyNodeFromMedia(MediaNode * media);
+BodyNode * CreateBodyNodeFromConditional(ConditionalNode * cond);
+
+ScoringNode * ScoringBlockSemanticAction(ListNode * rules);
+QuestionsBlockNode * QuestionsBlockSemanticAction(ListNode * questions, int isShuffled);
+MediaNode * MediaBlockSemanticAction(ListNode * items);
+MediaItemNode * MediaItemSemanticAction(MediaType type, char * path, char * alias);
+ConditionalNode * ConditionalSemanticAction(ExpressionNode * condition, char * ifTarget, char * elseTarget);
+
+AttributeNode * TitleAttributeSemanticAction(char * title);
+AttributeNode * ShuffleAttributeSemanticAction(ValueNode * value);
+AttributeNode * TimeAttributeSemanticAction(char * duration);
+AttributeNode * IdAttributeSemanticAction(char * id);
+AttributeNode * TypeAttributeSemanticAction(ValueNode * type);
+AttributeNode * TextAttributeSemanticAction(char * text);
+AttributeNode * OptionsAttributeSemanticAction(ListNode * options);
+AttributeNode * AnswerAttributeSemanticAction(ListNode * answer);
+AttributeNode * PointsAttributeSemanticAction(double points);
+AttributeNode * PartialCreditAttributeSemanticAction(ValueNode * value);
+AttributeNode * CaseSensitiveAttributeSemanticAction(ValueNode * value);
+
+ExpressionNode * BinaryExpressionSemanticAction(OperatorType op, ExpressionNode * left, ExpressionNode * right);
+ExpressionNode * NumberTermSemanticAction(double number);
+ExpressionNode * IdentifierTermSemanticAction(char * identifier);
+ExpressionNode * KeywordTermSemanticAction(KeywordType type);
+ScoringRuleNode * ScoringRuleSemanticAction(ScoringRuleType type, ExpressionNode * expression);
+
+ValueNode * ValueSemanticActionFromString(const char * string);
+ValueNode * ValueSemanticActionFromSymbol(char * symbol);
+ValueNode * ValueSemanticActionFromNumber(double number);
+ValueNode * ValueSemanticActionFromBoolean(int boolean);
+
+#endif // BISON_ACTIONS_HEADER

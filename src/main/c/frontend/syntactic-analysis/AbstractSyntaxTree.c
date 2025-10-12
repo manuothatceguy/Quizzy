@@ -1,70 +1,167 @@
 #include "AbstractSyntaxTree.h"
-
-/* MODULE INTERNAL STATE */
+#include <stdio.h>
 
 static Logger * _logger = NULL;
 
-/** Shutdown module's internal state. */
 void _shutdownAbstractSyntaxTreeModule() {
-	if (_logger != NULL) {
-		logDebugging(_logger, "Destroying module: AbstractSyntaxTree...");
-		destroyLogger(_logger);
-		_logger = NULL;
-	}
+    if (_logger != NULL) {
+        logDebugging(_logger, "Destroying module: AbstractSyntaxTree...");
+        destroyLogger(_logger);
+        _logger = NULL;
+    }
 }
 
 ModuleDestructor initializeAbstractSyntaxTreeModule() {
-	_logger = createLogger("AbstractSyntaxTree");
-	return _shutdownAbstractSyntaxTreeModule;
+    _logger = createLogger("AbstractSyntaxTree");
+    logDebugging(_logger, "Initializing module: AbstractSyntaxTree...");
+    return _shutdownAbstractSyntaxTreeModule;
 }
 
-/* PUBLIC FUNCTIONS */
-
-void destroyConstant(Constant * constant) {
-	logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
-	if (constant != NULL) {
-		free(constant);
-	}
+ListNode * CreateList(void * data) {
+    ListNode * newNode = (ListNode *) malloc(sizeof(ListNode));
+    if (newNode == NULL) {
+        logError(_logger, "Failed to allocate memory for ListNode.");
+        return NULL;
+    }
+    newNode->data = data;
+    newNode->next = NULL;
+    return newNode;
 }
 
-void destroyExpression(Expression * expression) {
-	logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
-	if (expression != NULL) {
-		switch (expression->type) {
-			case ADDITION:
-			case DIVISION:
-			case MULTIPLICATION:
-			case SUBTRACTION:
-				destroyExpression(expression->leftExpression);
-				destroyExpression(expression->rightExpression);
-				break;
-			case FACTOR:
-				destroyFactor(expression->factor);
-				break;
-		}
-		free(expression);
-	}
+ListNode * AppendToList(ListNode * list, void * data) {
+    if (list == NULL) {
+        return CreateList(data);
+    }
+    ListNode * current = list;
+    while (current->next != NULL) {
+        current = current->next;
+    }
+    current->next = CreateList(data);
+    return list;
 }
 
-void destroyFactor(Factor * factor) {
-	logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
-	if (factor != NULL) {
-		switch (factor->type) {
-			case CONSTANT:
-				destroyConstant(factor->constant);
-				break;
-			case EXPRESSION:
-				destroyExpression(factor->expression);
-				break;
-		}
-		free(factor);
-	}
+void destroyValueNode(ValueNode * value) {
+    if (value == NULL) return;
+    if (value->type == VAL_STRING || value->type == VAL_SYMBOL) {
+        free(value->stringValue);
+    }
+    free(value);
+}
+
+void destroyExpressionNode(ExpressionNode * expression) {
+    if (expression == NULL) return;
+
+    if (expression->nodeType == EXPRESSION_NODE_BINARY) {
+        destroyExpressionNode(expression->left);
+        destroyExpressionNode(expression->right);
+    } 
+    else { 
+        switch (expression->termType) {
+            case TERM_NUMBER:
+                destroyValueNode(expression->value);
+                break;
+            case TERM_IDENTIFIER:
+            case TERM_KEYWORD:
+                free(expression->identifier);
+                break;
+        }
+    }
+    
+    free(expression);
+}
+
+void destroyListNode(ListNode * list, void (*destroyData)(void *)) {
+    while (list != NULL) {
+        ListNode * next = list->next;
+        if (destroyData != NULL) {
+            destroyData(list->data);
+        }
+        free(list);
+        list = next;
+    }
+}
+
+void destroyScoringRuleNode(void * data) {
+    ScoringRuleNode * rule = (ScoringRuleNode *)data;
+    if (rule == NULL) return;
+    destroyExpressionNode(rule->expression);
+    free(rule);
+}
+
+void destroyScoringNode(ScoringNode * scoring) {
+    if (scoring == NULL) return;
+    destroyListNode(scoring->rules, destroyScoringRuleNode);
+    free(scoring);
+}
+
+void destroyMediaItemNode(void * data) {
+    MediaItemNode * item = (MediaItemNode *)data;
+    if (item == NULL) return;
+    free(item->path);
+    if (item->alias != NULL) {
+        free(item->alias);
+    }
+    free(item);
+}
+
+void destroyMediaNode(MediaNode * media) {
+    if (media == NULL) return;
+    destroyListNode(media->items, destroyMediaItemNode);
+    free(media);
+}
+
+void destroyQuestionNode(QuestionNode * question) {
+    if (question == NULL) return;
+
+    if (question->id) free(question->id);
+    if (question->type) free(question->type);
+    if (question->text) free(question->text);
+    if (question->time) free(question->time);
+    
+    destroyListNode(question->options, (void (*)(void*))destroyValueNode);
+    destroyListNode(question->answer, (void (*)(void*))destroyValueNode);
+    destroyValueNode(question->points);
+    destroyValueNode(question->partialCredit);
+    destroyValueNode(question->caseSensitive);
+    destroyMediaNode(question->media);
+
+    free(question);
+}
+
+void destroyQuestionsBlockNode(QuestionsBlockNode * questionsBlock) {
+    if (questionsBlock == NULL) return;
+    destroyListNode(questionsBlock->questions, (void (*)(void *))destroyQuestionNode);
+    free(questionsBlock);
+}
+
+void destroyConditionalNode(ConditionalNode * conditional) {
+    if (conditional == NULL) return;
+    destroyExpressionNode(conditional->condition);
+    free(conditional->ifTargetId);
+    if (conditional->elseTargetId) {
+        free(conditional->elseTargetId);
+    }
+    free(conditional);
+}
+
+void destroyQuizNode(QuizNode * quiz) {
+    if (quiz == NULL) return;
+
+    if (quiz->title) free(quiz->title);
+    if (quiz->time) free(quiz->time);
+    
+    destroyValueNode(quiz->shuffle);
+    destroyScoringNode(quiz->scoring);
+    destroyQuestionsBlockNode(quiz->questions);
+    destroyListNode(quiz->conditionals, (void (*)(void *))destroyConditionalNode);
+
+    free(quiz);
 }
 
 void destroyProgram(Program * program) {
-	logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
-	if (program != NULL) {
-		destroyExpression(program->expression);
-		free(program);
-	}
+    logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
+    if (program != NULL) {
+        destroyQuizNode(program->quiz);
+        free(program);
+    }
 }

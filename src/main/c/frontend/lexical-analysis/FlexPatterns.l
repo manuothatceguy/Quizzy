@@ -15,16 +15,20 @@
  */
 
 extern CompilationStatus ArithmeticOperatorLexemeAction(TokenLabel label);
-extern CompilationStatus EnterImportExpressionLexemeAction(FlexContext context);
 extern CompilationStatus EnterMultilineCommentLexemeAction(FlexContext context);
 extern CompilationStatus EOFLexemeAction();
 extern CompilationStatus IgnoredLexemeAction();
-extern CompilationStatus IntegerLexemeAction();
-extern CompilationStatus LeaveImportExpressionLexemeAction();
 extern CompilationStatus LeaveMultilineCommentLexemeAction();
-extern CompilationStatus ParenthesisLexemeAction(TokenLabel label);
-extern CompilationStatus SubexpressionLexemeAction();
 extern CompilationStatus UnknownLexemeAction();
+
+extern CompilationStatus KeywordLexemeAction(TokenLabel label);
+extern CompilationStatus PunctuationLexemeAction(TokenLabel label);
+extern CompilationStatus RelationalOperatorLexemeAction(TokenLabel label);
+extern CompilationStatus IdentifierLexemeAction();
+extern CompilationStatus StringLiteralLexemeAction();
+extern CompilationStatus NumberLexemeAction();
+extern CompilationStatus DurationLexemeAction();
+extern CompilationStatus SymbolRefLexemeAction();
 
 %}
 
@@ -33,7 +37,6 @@ extern CompilationStatus UnknownLexemeAction();
  *
  * @see https://westes.github.io/flex/manual/Start-Conditions.html
  */
-%x IMPORT_EXPRESSION
 %x MULTILINE_COMMENT
 
 /**
@@ -42,7 +45,12 @@ extern CompilationStatus UnknownLexemeAction();
  * @see https://westes.github.io/flex/manual/Matching.html
  * @see https://westes.github.io/flex/manual/Patterns.html
  */
-whitespace			[[:space:]]+
+whitespace          [[:space:]]+
+digit               [0-9]
+letter              [a-zA-Z_]
+identifier          {letter}({letter}|{digit})*
+number              {digit}+(\.{digit}+)?
+duration            {number}[[:space:]]*(s|min)
 
 %%
 
@@ -54,30 +62,74 @@ whitespace			[[:space:]]+
 
 %}
 
-"{"									{ return EnterImportExpressionLexemeAction(IMPORT_EXPRESSION); }
-<IMPORT_EXPRESSION>[^{}]+			{ return SubexpressionLexemeAction(); }
-<IMPORT_EXPRESSION>"}"				{ return LeaveImportExpressionLexemeAction(); }
-<IMPORT_EXPRESSION>.				{ return UnknownLexemeAction(); }
+"/*"                                { return EnterMultilineCommentLexemeAction(MULTILINE_COMMENT); }
+<MULTILINE_COMMENT>"*/"             { return LeaveMultilineCommentLexemeAction(); }
+<MULTILINE_COMMENT>[^*]+            { return IgnoredLexemeAction(); }
+<MULTILINE_COMMENT>.                { return IgnoredLexemeAction(); }
+{whitespace}                        { return IgnoredLexemeAction(); }
 
-"/*"								{ return EnterMultilineCommentLexemeAction(MULTILINE_COMMENT); }
-<MULTILINE_COMMENT>"*/"				{ return LeaveMultilineCommentLexemeAction(); }
-<MULTILINE_COMMENT>[^*]+			{ return IgnoredLexemeAction(); }
-<MULTILINE_COMMENT>.				{ return IgnoredLexemeAction(); }
+"quiz"              { return KeywordLexemeAction(T_QUIZ); }
+"title"             { return KeywordLexemeAction(T_TITLE); }
+"shuffle"           { return KeywordLexemeAction(T_SHUFFLE); }
+"time"              { return KeywordLexemeAction(T_TIME); }
+"scoring"           { return KeywordLexemeAction(T_SCORING); }
+"correct"           { return KeywordLexemeAction(T_CORRECT); }
+"wrong"             { return KeywordLexemeAction(T_WRONG); }
+"timeout"           { return KeywordLexemeAction(T_TIMEOUT); }
+"questions"         { return KeywordLexemeAction(T_QUESTIONS); }
+"question"          { return KeywordLexemeAction(T_QUESTION); }
+"id"                { return KeywordLexemeAction(T_ID); }
+"type"              { return KeywordLexemeAction(T_TYPE); }
+"text"              { return KeywordLexemeAction(T_TEXT); }
+"options"           { return KeywordLexemeAction(T_OPTIONS); }
+"answer"            { return KeywordLexemeAction(T_ANSWER); }
+"points"            { return KeywordLexemeAction(T_POINTS); }
+"partialCredit"     { return KeywordLexemeAction(T_PARTIAL_CREDIT); }
+"caseSensitive"     { return KeywordLexemeAction(T_CASE_SENSITIVE); }
+"media"             { return KeywordLexemeAction(T_MEDIA); }
+"image"             { return KeywordLexemeAction(T_IMAGE); }
+"audio"             { return KeywordLexemeAction(T_AUDIO); }
+"video"             { return KeywordLexemeAction(T_VIDEO); }
+"as"                { return KeywordLexemeAction(T_AS); }
+"if"                { return KeywordLexemeAction(T_IF); }
+"else"              { return KeywordLexemeAction(T_ELSE); }
+"next"              { return KeywordLexemeAction(T_NEXT); }
+"true"              { return KeywordLexemeAction(T_TRUE); }
+"false"             { return KeywordLexemeAction(T_FALSE); }
+"score"             { return KeywordLexemeAction(T_SCORE_VAR); }
+"timeLeft"          { return KeywordLexemeAction(T_TIMELEFT_VAR); }
+"shortAnswer"       { return KeywordLexemeAction(T_QTYPE_SHORT); }
+"multipleChoice"    { return KeywordLexemeAction(T_QTYPE_MULTIPLE); }
+"trueFalse"         { return KeywordLexemeAction(T_QTYPE_BOOLEAN); }
 
-"-"									{ return ArithmeticOperatorLexemeAction(SUB); }
-"*"									{ return ArithmeticOperatorLexemeAction(MUL); }
-"/"									{ return ArithmeticOperatorLexemeAction(DIV); }
-"+"									{ return ArithmeticOperatorLexemeAction(ADD); }
+{duration}                          { return DurationLexemeAction(); }
+{number}                            { return NumberLexemeAction(); }
+\"[^"\n]*\"                         { return StringLiteralLexemeAction(); }
+:{identifier}                       { return SymbolRefLexemeAction(); }
+{identifier}                        { return IdentifierLexemeAction(); }
 
-"("									{ return ParenthesisLexemeAction(OPEN_PARENTHESIS); }
-")"									{ return ParenthesisLexemeAction(CLOSE_PARENTHESIS); }
+"=="                { return RelationalOperatorLexemeAction(T_EQ); }
+"!="                { return RelationalOperatorLexemeAction(T_NEQ); }
+">="                { return RelationalOperatorLexemeAction(T_GTE); }
+"<="                { return RelationalOperatorLexemeAction(T_LTE); }
+">"                 { return PunctuationLexemeAction('>'); }
+"<"                 { return PunctuationLexemeAction('<'); }
 
-[[:digit:]]+						{ return IntegerLexemeAction(); }
+"-"                 { return ArithmeticOperatorLexemeAction(T_SUB); }
+"*"                 { return ArithmeticOperatorLexemeAction(T_MUL); }
+"/"                 { return ArithmeticOperatorLexemeAction(T_DIV); }
+"+"                 { return ArithmeticOperatorLexemeAction(T_ADD); }
 
-{whitespace}						{ return IgnoredLexemeAction(); }
-.									{ return UnknownLexemeAction(); }
-
-<<EOF>>								{ return EOFLexemeAction(); }
+"{"                 { return PunctuationLexemeAction(T_LBRACE); }
+"}"                 { return PunctuationLexemeAction(T_RBRACE); }
+"["                 { return PunctuationLexemeAction(T_LBRACKET); }
+"]"                 { return PunctuationLexemeAction(T_RBRACKET); }
+"("                 { return PunctuationLexemeAction(T_LPAREN); }
+")"                 { return PunctuationLexemeAction(T_RPAREN); }
+"="                 { return PunctuationLexemeAction(T_ASSIGN); }
+","                 { return PunctuationLexemeAction(T_COMMA); }
+.                   { return UnknownLexemeAction(); }
+<<EOF>>             { return EOFLexemeAction(); }
 
 %%
 

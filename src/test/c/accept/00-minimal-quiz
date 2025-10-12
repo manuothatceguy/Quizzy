@@ -1,0 +1,11 @@
+quiz {
+    title = "Test Minimo"
+    questions = {
+        question {
+            type = trueFalse
+            text = "El cielo es azul."
+            answer = true
+            points = 1
+        }
+    }
+}

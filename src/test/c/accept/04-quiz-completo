@@ -1,0 +1,49 @@
+quiz {
+  title = "Quizzy Demo"
+  shuffle = true
+  time = 3 min
+
+  scoring {
+    correct = +points
+    wrong = -1
+    timeout = -points/2
+  }
+
+  questions = {
+    question {
+      id = q1
+      type = multipleChoice
+      text = "¿Qué lenguaje se ejecuta en la JVM?"
+      options = { "Kotlin", "Python", "C++" }
+      answer = "Kotlin"
+      points = 2
+    }
+
+    question {
+      id = q2
+      type = shortAnswer
+      text = "¿Cuántos continentes hay en la Tierra?"
+      answer = "7"
+      points = 2
+    }
+
+    question {
+      id = q3
+      type = trueFalse
+      text = "El oxígeno tiene símbolo químico O₂."
+      answer = false
+      points = 1
+    }
+
+    if (score >= 4) next = question("bonus")
+
+    question {
+      id = bonus
+      type = multipleChoice
+      text = "¿Qué lenguaje define Quizzy?"
+      options = ["Kotlin", "Python", "Quizzy"]
+      answer = "Quizzy"
+      points = 5
+    }
+  }
+}

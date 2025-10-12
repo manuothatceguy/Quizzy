@@ -1,0 +1,23 @@
+quiz {
+  title = "Nivel adaptable"
+  questions = {
+    question {
+      id = q1
+      type = trueFalse
+      text = "El aire contiene oxígeno."
+      answer = true
+      points = 1
+    }
+
+    question {
+      id = bonus
+      type = multipleChoice
+      text = "¿Qué elemento tiene símbolo químico 'O'?"
+      options = ["Oxígeno", "Oro", "Osmio"]
+      answer = "Oxígeno"
+      points = 3
+    }
+
+    if (score >= 1) next = question("bonus")
+  }
+}

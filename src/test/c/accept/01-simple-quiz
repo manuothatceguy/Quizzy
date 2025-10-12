@@ -1,0 +1,20 @@
+quiz {
+    title = "Quiz de Cultura General"
+    shuffle = true
+    time = 2 min
+    scoring {
+        correct = points
+        wrong = 0 - 1
+        timeout = 0 - 0.5
+    }
+
+    questions = {
+        question {
+            type = multipleChoice
+            text = "¿Cuál es la capital de Francia?"
+            options = { "París", "Marsella", "Lyon", "Toulouse" }
+            answer = "París"
+            points = 3
+        }
+    }
+}
