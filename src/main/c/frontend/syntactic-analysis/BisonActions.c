@@ -2,14 +2,9 @@
 #include <string.h>
 #include <stdio.h>
 
-/* ========================================================================== */
-/* MODULE INTERNAL STATE                                                      */
-/* ========================================================================== */
-
 static CompilerState * _compilerState = NULL;
 static Logger * _logger = NULL;
 
-/** Shutdown module's internal state. */
 void _shutdownBisonActionsModule() {
     if (_logger != NULL) {
         logDebugging(_logger, "Destroying module: BisonActions...");
@@ -26,13 +21,11 @@ ModuleDestructor initializeBisonActionsModule(CompilerState * compilerState) {
 }
 
 
-/* PRIVATE FUNCTION */
 static void _logSyntacticAnalyzerAction(const char * functionName) {
     logDebugging(_logger, "BisonAction: %s", functionName);
 }
 
 
-/* PUBLIC FUNCTIONS */
 Program * ProgramSemanticAction(QuizNode * quiz) {
     _logSyntacticAnalyzerAction(__FUNCTION__);
     Program * program = calloc(1, sizeof(Program));

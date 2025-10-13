@@ -20,7 +20,7 @@ typedef enum {
 
 typedef struct QuestionListItem {
     int isConditional;
-    void * node; /* QuestionNode* or ConditionalNode* */
+    void * node;
 } QuestionListItem;
 
 QuestionListItem * CreateQuestionListItemFromQuestion(QuestionNode * q);
@@ -65,4 +65,4 @@ ValueNode * ValueSemanticActionFromSymbol(char * symbol);
 ValueNode * ValueSemanticActionFromNumber(double number);
 ValueNode * ValueSemanticActionFromBoolean(int boolean);
 
-#endif // BISON_ACTIONS_HEADER
+#endif
