@@ -131,16 +131,13 @@ void destroyQuestionNode(QuestionNode * question) {
 void destroyQuestionsBlockNode(QuestionsBlockNode * questionsBlock) {
     if (questionsBlock == NULL) return;
     destroyListNode(questionsBlock->questions, (void (*)(void *))destroyQuestionNode);
+    destroyListNode(questionsBlock->conditionals, (void (*)(void *))destroyConditionalNode);
     free(questionsBlock);
 }
 
 void destroyConditionalNode(ConditionalNode * conditional) {
     if (conditional == NULL) return;
     destroyExpressionNode(conditional->condition);
-    free(conditional->ifTargetId);
-    if (conditional->elseTargetId) {
-        free(conditional->elseTargetId);
-    }
     free(conditional);
 }
 

@@ -165,7 +165,8 @@ questions_block
 
 question_list
 	: %empty										{ $$ = NULL; }
-	| question_list question						{ $$ = AppendToList($1, $2); }
+	| question_list question							{ $$ = AppendToList($1, CreateQuestionListItemFromQuestion($2)); }
+	| question_list conditional							{ $$ = AppendToList($1, CreateQuestionListItemFromConditional($2)); }
 ;
 
 question

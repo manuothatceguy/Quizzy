@@ -164,9 +164,37 @@ ScoringNode * ScoringBlockSemanticAction(ListNode * rules) {
 QuestionsBlockNode * QuestionsBlockSemanticAction(ListNode * questions, int isShuffled) {
     _logSyntacticAnalyzerAction(__FUNCTION__);
     QuestionsBlockNode * node = calloc(1, sizeof(QuestionsBlockNode));
-    node->questions = questions;
+    node->isShuffled = isShuffled;
+    node->questions = NULL;
+    node->conditionals = NULL;
+    ListNode * current = questions;
+    while (current != NULL) {
+        QuestionListItem * item = (QuestionListItem *) current->data;
+        if (item != NULL && item->isConditional) {
+            node->conditionals = AppendToList(node->conditionals, (ConditionalNode *) item->node);
+        } else if (item != NULL) {
+            node->questions = AppendToList(node->questions, (QuestionNode *) item->node);
+        }
+        free(item);
+        current = current->next;
+    }
+    destroyListNode(questions, NULL);
     node->isShuffled = isShuffled;
     return node;
+}
+
+QuestionListItem * CreateQuestionListItemFromQuestion(QuestionNode * q) {
+    QuestionListItem * item = (QuestionListItem *) calloc(1, sizeof(QuestionListItem));
+    item->isConditional = 0;
+    item->node = q;
+    return item;
+}
+
+QuestionListItem * CreateQuestionListItemFromConditional(ConditionalNode * c) {
+    QuestionListItem * item = (QuestionListItem *) calloc(1, sizeof(QuestionListItem));
+    item->isConditional = 1;
+    item->node = c;
+    return item;
 }
 
 MediaNode * MediaBlockSemanticAction(ListNode * items) {
@@ -191,9 +219,9 @@ ConditionalNode * ConditionalSemanticAction(ExpressionNode * condition, char * i
     _logSyntacticAnalyzerAction(__FUNCTION__);
     ConditionalNode * node = calloc(1, sizeof(ConditionalNode));
     node->condition = condition;
-    node->ifTargetId = strdup(ifTarget);
+    node->ifTargetId = ifTarget;
     if (elseTarget) {
-        node->elseTargetId = strdup(elseTarget);
+        node->elseTargetId = elseTarget;
     }
     return node;
 }

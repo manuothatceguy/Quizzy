@@ -146,6 +146,7 @@ struct QuestionNode {
 struct QuestionsBlockNode {
     int isShuffled; // 1 si es {}, 0 si es []
     ListNode * questions; 
+    ListNode * conditionals; // list of ConditionalNode* found inside the questions block
 };
 
 // Nodo para un condicional 'if'

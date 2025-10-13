@@ -18,6 +18,14 @@ typedef enum {
     KEYWORD_TIMELEFT
 } KeywordType;
 
+typedef struct QuestionListItem {
+    int isConditional;
+    void * node; /* QuestionNode* or ConditionalNode* */
+} QuestionListItem;
+
+QuestionListItem * CreateQuestionListItemFromQuestion(QuestionNode * q);
+QuestionListItem * CreateQuestionListItemFromConditional(ConditionalNode * c);
+
 Program * ProgramSemanticAction(QuizNode * quiz);
 QuizNode * QuizBlockSemanticAction(ListNode * body);
 QuestionNode * QuestionSemanticAction(ListNode * body);
