@@ -61,7 +61,7 @@ CompilationStatus ArithmeticOperatorLexemeAction(TokenLabel label) {
 
 CompilationStatus IdentifierLexemeAction() {
     Token * token = createToken(_lexicalAnalyzer, T_IDENTIFIER);
-    token->semanticValue->string = strdup(token->lexeme);
+    token->semanticValue->string = token->lexeme;
     _logTokenAction(__FUNCTION__, token);
     CompilationStatus status = pushToken(_lexicalAnalyzer, token);
     destroyToken(token);
@@ -72,7 +72,7 @@ CompilationStatus StringLiteralLexemeAction() {
     Token * token = createToken(_lexicalAnalyzer, T_STRING_LITERAL);
     char * lexeme = token->lexeme;
     lexeme[strlen(lexeme) - 1] = '\0'; 
-    token->semanticValue->string = strdup(lexeme + 1); 
+    token->semanticValue->string = lexeme + 1;
     _logTokenAction(__FUNCTION__, token);
     CompilationStatus status = pushToken(_lexicalAnalyzer, token);
     destroyToken(token);
@@ -90,7 +90,7 @@ CompilationStatus NumberLexemeAction() {
 
 CompilationStatus DurationLexemeAction() {
     Token * token = createToken(_lexicalAnalyzer, T_DURATION);
-    token->semanticValue->string = strdup(token->lexeme);
+    token->semanticValue->string = token->lexeme;
     _logTokenAction(__FUNCTION__, token);
     CompilationStatus status = pushToken(_lexicalAnalyzer, token);
     destroyToken(token);
@@ -99,7 +99,7 @@ CompilationStatus DurationLexemeAction() {
 
 CompilationStatus SymbolRefLexemeAction() {
     Token * token = createToken(_lexicalAnalyzer, T_SYMBOL_REF);
-    token->semanticValue->string = strdup(token->lexeme);
+    token->semanticValue->string = token->lexeme;
     _logTokenAction(__FUNCTION__, token);
     CompilationStatus status = pushToken(_lexicalAnalyzer, token);
     destroyToken(token);

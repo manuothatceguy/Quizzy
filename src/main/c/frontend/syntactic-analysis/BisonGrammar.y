@@ -277,6 +277,8 @@ term
 	| T_SCORE_VAR									{ $$ = KeywordTermSemanticAction(KEYWORD_SCORE); }
 	| T_TIMELEFT_VAR								{ $$ = KeywordTermSemanticAction(KEYWORD_TIMELEFT); }
 	| T_LPAREN expression T_RPAREN					{ $$ = $2; }
+	| T_ADD term									{ $$ = BinaryExpressionSemanticAction(OP_ADD, NumberTermSemanticAction(0), $2); }
+	| T_SUB term									{ $$ = BinaryExpressionSemanticAction(OP_SUB, NumberTermSemanticAction(0), $2); }
 ;
 
 %%
