@@ -201,9 +201,9 @@ MediaItemNode * MediaItemSemanticAction(MediaType type, char * path, char * alia
     _logSyntacticAnalyzerAction(__FUNCTION__);
     MediaItemNode * item = calloc(1, sizeof(MediaItemNode));
     item->type = type;
-    item->path = strdup(path);
+    item->path = path;
     if (alias) {
-        item->alias = strdup(alias);
+        item->alias = alias;
     }
     return item;
 }

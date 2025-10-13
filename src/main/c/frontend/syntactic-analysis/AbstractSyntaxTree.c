@@ -97,10 +97,6 @@ void destroyScoringNode(ScoringNode * scoring) {
 void destroyMediaItemNode(void * data) {
     MediaItemNode * item = (MediaItemNode *)data;
     if (item == NULL) return;
-    free(item->path);
-    if (item->alias != NULL) {
-        free(item->alias);
-    }
     free(item);
 }
 
