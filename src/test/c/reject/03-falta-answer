@@ -1,0 +1,10 @@
+quiz {
+  title = "falta answer"
+  questions = {
+    question {
+      type = shortAnswer
+      text = "Capital de Italia"
+      points = 1
+    }
+  }
+}

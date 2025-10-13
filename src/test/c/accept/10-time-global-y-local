@@ -1,0 +1,13 @@
+quiz {
+  title = "Tiempos"
+  time = 2 min
+  questions = {
+    question {
+      type = trueFalse
+      text = "La Tierra es un planeta"
+      answer = true
+      points = 1
+      time = 30 s
+    }
+  }
+}

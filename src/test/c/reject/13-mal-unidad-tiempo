@@ -1,0 +1,7 @@
+quiz {
+  title = "unidad de tiempo no soportada"
+  time = 5 ms  
+  questions = {
+    question { type = trueFalse, text = "X", answer = true }
+  }
+}

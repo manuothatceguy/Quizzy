@@ -1,0 +1,11 @@
+quiz {
+  title = "puntos negativos"
+  questions = {
+    question {
+      type = trueFalse
+      text = "X"
+      answer = true
+      points = -1
+    }
+  }
+}

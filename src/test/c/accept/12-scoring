@@ -1,0 +1,16 @@
+quiz {
+  title = "Scoring dinámico"
+  scoring {
+    correct = +points
+    wrong   = -1
+    timeout = -points/2
+  }
+  questions = {
+    question {
+      type = trueFalse
+      text = "El agua es H2O"
+      answer = true
+      points = 2
+    }
+  }
+}

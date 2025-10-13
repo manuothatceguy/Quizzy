@@ -1,0 +1,11 @@
+quiz {
+  title = "SA CI"
+  questions = {
+    question {
+      type = shortAnswer
+      text = "Capital de Francia"
+      answer = "parís"
+      points = 1
+    }
+  }
+}

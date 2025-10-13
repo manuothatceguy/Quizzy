@@ -1,0 +1,10 @@
+quiz {
+  title = "trueFalse mal tipeado"
+  questions = {
+    question {
+      type = trueFalse
+      text = "X"
+      answer = "true"
+    }
+  }
+}

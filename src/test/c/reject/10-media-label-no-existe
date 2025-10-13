@@ -1,0 +1,14 @@
+quiz {
+  title = "media label no existe"
+  questions = {
+    question {
+      type = multipleChoice
+      text = "Audio correcto"
+      media {
+        audio("a1.mp3" as a1)
+      }
+      options = [:a1, :a2]
+      answer = :a2 
+    }
+  }
+}

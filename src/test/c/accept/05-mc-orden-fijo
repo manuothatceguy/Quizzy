@@ -1,0 +1,12 @@
+quiz {
+  title = "MC fijo"
+  questions = [
+    question {
+      type = multipleChoice
+      text = "¿Cuál es un lenguaje que corre en la JVM?"
+      options = ["Kotlin","Python","C++"]
+      answer = "Kotlin"
+      points = 2
+    }
+  ]
+}

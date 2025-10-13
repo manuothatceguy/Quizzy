@@ -1,0 +1,12 @@
+quiz {
+  title = "SA CS"
+  questions = {
+    question {
+      type = shortAnswer
+      text = "Escribe: Quizzy"
+      answer = "Quizzy"
+      caseSensitive = true
+      points = 1
+    }
+  }
+}

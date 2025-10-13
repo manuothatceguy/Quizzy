@@ -1,0 +1,15 @@
+quiz {
+  title = "label con string"
+  questions = {
+    question {
+      type = multipleChoice
+      text = "¿Cuál imagen es un círculo?"
+      media {
+        image("circle.png" as c)
+        image("square.png" as s)
+      }
+      options = [:c, :s]
+      answer  = [ :c, "triángulo" ]
+    }
+  }
+}

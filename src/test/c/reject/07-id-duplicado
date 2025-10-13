@@ -1,0 +1,7 @@
+quiz {
+  title = "ids duplicados"
+  questions = [
+    question { id = q1, type = trueFalse, text = "A", answer = true },
+    question { id = q1, type = trueFalse, text = "B", answer = false }
+  ]
+}

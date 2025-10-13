@@ -1,0 +1,11 @@
+quiz {
+  title = "sin opciones"
+  questions = {
+    question {
+      type = multipleChoice
+      text = "X"
+      options = {}
+      answer = "X"
+    }
+  }
+}

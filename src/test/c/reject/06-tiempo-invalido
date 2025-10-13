@@ -1,0 +1,7 @@
+quiz {
+  title = "tiempo invalido"
+  time = -10 s
+  questions = {
+    question { type = trueFalse, text = "X", answer = true }
+  }
+}

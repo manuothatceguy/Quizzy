@@ -1,0 +1,11 @@
+quiz {
+  title = "multipleChoice con una opcion"
+  questions = {
+    question {
+      type = multipleChoice
+      text = "X"
+      options = ["una sola"]
+      answer = "una sola"
+    }
+  }
+}

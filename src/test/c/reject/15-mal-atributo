@@ -1,0 +1,11 @@
+quiz {
+  title = "atributo no existe"
+  questions = {
+    question {
+      type = trueFalse
+      text = "X"
+      answer = true
+      difficulty = "hard"
+    }
+  }
+}

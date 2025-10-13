@@ -1,0 +1,13 @@
+quiz {
+  title = "MC multi con parcial"
+  questions = {
+    question {
+      type = multipleChoice
+      text = "Selecciona lenguajes fuertemente tipados"
+      options = { "Kotlin","JavaScript","C","Python" }
+      answer = ["Kotlin","C"]
+      partialCredit = true
+      points = 4
+    }
+  }
+}

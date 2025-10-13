@@ -1,0 +1,11 @@
+quiz {
+  title = "answer no es una opcion"
+  questions = {
+    question {
+      type = multipleChoice
+      text = "Capital de Italia"
+      options = ["Roma","Milán"]
+      answer = "París"
+    }
+  }
+}

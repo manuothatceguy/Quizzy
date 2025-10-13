@@ -1,0 +1,9 @@
+quiz {
+  title = "falta type"
+  questions = {
+    question {
+      text = "¿y el type?"
+      answer = "algo"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+quiz {
+  title = "Flujo condicional"
+  questions = {
+    question {
+      id = base
+      type = trueFalse
+      text = "El aire contiene oxígeno"
+      answer = true
+      points = 1
+    }
+
+    question {
+      id = bonus
+      type = shortAnswer
+      text = "Símbolo químico del oxígeno"
+      answer = "O"
+      points = 2
+    }
+
+    if (score >= 1) next = question("bonus")
+  }
+}

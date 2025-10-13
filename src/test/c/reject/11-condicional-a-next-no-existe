@@ -1,0 +1,12 @@
+quiz {
+  title = "next no existe"
+  questions = {
+    question {
+      id = start
+      type = trueFalse
+      text = "X"
+      answer = true
+    }
+    if (score > 0) next = question("noexiste")
+  }
+}

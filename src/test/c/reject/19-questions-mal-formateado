@@ -1,0 +1,5 @@
+quiz {
+  title = "questions mal formateado"
+  questions = 
+    question { type = trueFalse, text = "X", answer = true }
+}

@@ -1,0 +1,12 @@
+quiz {
+  title = "MC aleatorio"
+  questions = {
+    question {
+      type = multipleChoice
+      text = "¿Cuál es un metal alcalino?"
+      options = { "Sodio","Neón","Argón","Helio" }
+      answer = "Sodio"
+      points = 1
+    }
+  }
+}

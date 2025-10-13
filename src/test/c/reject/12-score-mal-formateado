@@ -1,0 +1,9 @@
+quiz {
+  title = "score mal formateado"
+  scoring {
+    correct = + / 2   
+  }
+  questions = {
+    question { type = trueFalse, text = "X", answer = true }
+  }
+}

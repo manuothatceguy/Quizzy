@@ -1,0 +1,7 @@
+quiz {
+  title = "IDs únicos"
+  questions = [
+    question { id = q1 type = trueFalse text = "A" answer = true points = 1 }
+    question { id = q2 type = trueFalse text = "B" answer = false points = 1 }
+  ]
+}

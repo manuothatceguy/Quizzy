@@ -1,0 +1,5 @@
+quiz {
+  questions = {
+    question { type = trueFalse, text = "X", answer = true }
+  }
+}

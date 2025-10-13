@@ -1,0 +1,10 @@
+quiz {
+  title = "bool con mayus"
+  questions = {
+    question {
+      type = trueFalse
+      text = "X"
+      answer = True
+    }
+  }
+}

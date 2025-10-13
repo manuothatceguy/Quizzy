@@ -1,0 +1,9 @@
+quiz {
+  title = "no tiene text"
+  questions = {
+    question {
+      type = shortAnswer
+      answer = "Algo"
+    }
+  }
+}
