@@ -4,9 +4,8 @@
 #include "../../support/logging/Logger.h"
 #include "../../support/type/ModuleDestructor.h"
 #include <stdlib.h>
-#include <string.h> // Necesario para strdup
+#include <string.h>
 
-/** Initialize module's internal state. */
 ModuleDestructor initializeAbstractSyntaxTreeModule();
 
 typedef struct Program Program;
@@ -146,10 +145,10 @@ struct QuestionNode {
 struct QuestionsBlockNode {
     int isShuffled; // 1 si es {}, 0 si es []
     ListNode * questions; 
-    ListNode * conditionals; // list of ConditionalNode* found inside the questions block
+    ListNode * conditionals; 
 };
 
-// Nodo para un condicional 'if'
+// Nodo para un if
 struct ConditionalNode {
     ExpressionNode * condition;
     char * ifTargetId;
@@ -176,13 +175,16 @@ ListNode * AppendToList(ListNode * list, void * data);
 void destroyProgram(Program * program);
 void destroyQuizNode(QuizNode * quiz);
 void destroyScoringNode(ScoringNode * scoring);
+void destroyScoringRuleNode(void * data);
 void destroyQuestionsBlockNode(QuestionsBlockNode * questions);
 void destroyQuestionNode(QuestionNode * question);
 void destroyMediaNode(MediaNode * media);
+void destroyMediaItemNode(void * data);
 void destroyConditionalNode(ConditionalNode * conditional);
 void destroyExpressionNode(ExpressionNode * expression);
 void destroyValueNode(ValueNode * value);
 void destroyListNode(ListNode * list, void (*destroyData)(void *));
-
+void destroyAttributeNode(AttributeNode * attr);
+void destroyBodyNode(void * data);
 
 #endif

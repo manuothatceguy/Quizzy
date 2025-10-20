@@ -81,6 +81,51 @@ void destroyListNode(ListNode * list, void (*destroyData)(void *)) {
     }
 }
 
+void destroyBodyNode(void * data) {
+    if (data == NULL) return;
+    BodyNode * node = (BodyNode *) data;
+    switch (node->type) {
+        case BODY_NODE_ATTRIBUTE:
+            if (node->data.attributeNode != NULL) {
+                AttributeNode * attr = node->data.attributeNode;
+                switch (attr->type) {
+                    case ATTR_TITLE:
+                    case ATTR_ID:
+                    case ATTR_TEXT:
+                    case ATTR_TIME:
+                        if (attr->stringValue) free(attr->stringValue);
+                        break;
+                    case ATTR_SHUFFLE:
+                    case ATTR_POINTS:
+                    case ATTR_PARTIAL_CREDIT:
+                    case ATTR_CASE_SENSITIVE:
+                    case ATTR_TYPE:
+                        destroyValueNode(attr->valueNode);
+                        break;
+                    case ATTR_OPTIONS:
+                    case ATTR_ANSWER:
+                        destroyListNode(attr->listValue, (void (*)(void*))destroyValueNode);
+                        break;
+                }
+                free(attr);
+            }
+            break;
+        case BODY_NODE_SCORING:
+            destroyScoringNode(node->data.scoringNode);
+            break;
+        case BODY_NODE_QUESTIONS:
+            destroyQuestionsBlockNode(node->data.questionsBlockNode);
+            break;
+        case BODY_NODE_MEDIA:
+            destroyMediaNode(node->data.mediaNode);
+            break;
+        case BODY_NODE_CONDITIONAL:
+            destroyConditionalNode(node->data.conditionalNode);
+            break;
+    }
+    free(node);
+}
+
 void destroyScoringRuleNode(void * data) {
     ScoringRuleNode * rule = (ScoringRuleNode *)data;
     if (rule == NULL) return;
@@ -97,6 +142,8 @@ void destroyScoringNode(ScoringNode * scoring) {
 void destroyMediaItemNode(void * data) {
     MediaItemNode * item = (MediaItemNode *)data;
     if (item == NULL) return;
+    if (item->path) free(item->path);
+    if (item->alias) free(item->alias);
     free(item);
 }
 
@@ -134,6 +181,8 @@ void destroyQuestionsBlockNode(QuestionsBlockNode * questionsBlock) {
 void destroyConditionalNode(ConditionalNode * conditional) {
     if (conditional == NULL) return;
     destroyExpressionNode(conditional->condition);
+    if (conditional->ifTargetId) free(conditional->ifTargetId);
+    if (conditional->elseTargetId) free(conditional->elseTargetId);
     free(conditional);
 }
 

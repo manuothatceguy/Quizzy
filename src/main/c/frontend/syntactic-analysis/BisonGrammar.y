@@ -80,6 +80,43 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %type <scoringRuleNode> scoring_rule
 %type <valueNode> value question_type boolean
 
+%destructor { free($$); } <string>
+%destructor { destroyValueNode($$); } <valueNode>
+%destructor { destroyExpressionNode($$); } <expressionNode>
+%destructor { 
+    if ($$ != NULL) {
+        destroyExpressionNode($$->expression);
+        free($$);
+    }
+} <scoringRuleNode>
+%destructor { destroyBodyNode($$); } <bodyNode>
+%destructor { destroyConditionalNode($$); } <conditionalNode>
+%destructor { destroyQuestionNode($$); } <questionNode>
+%destructor { destroyQuizNode($$); } <quizNode>
+
+%destructor { destroyListNode($$, (void (*)(void*))destroyValueNode); } value_list list_literal set_literal
+
+%destructor { destroyListNode($$, destroyBodyNode); } quiz_body question_body
+%destructor { destroyListNode($$, destroyScoringRuleNode); } scoring_rules
+%destructor { destroyListNode($$, destroyMediaItemNode); } media_items
+%destructor {
+	ListNode * cur = $$;
+	while (cur != NULL) {
+		ListNode * next = cur->next;
+		if (cur->data != NULL) {
+			QuestionListItem * item = (QuestionListItem *) cur->data;
+			if (item->isConditional) {
+				destroyConditionalNode((ConditionalNode *) item->node);
+			} else {
+				destroyQuestionNode((QuestionNode *) item->node);
+			}
+			free(item);
+		}
+		free(cur);
+		cur = next;
+	}
+} question_list
+
 /**
  * Precedence and associativity.
  * @see https://www.gnu.org/software/bison/manual/html_node/Precedence.html
@@ -121,9 +158,9 @@ quiz_item
 ;
 
 quiz_attr
-	: T_TITLE T_ASSIGN T_STRING_LITERAL				{ $$ = TitleAttributeSemanticAction($3); }
+	: T_TITLE T_ASSIGN T_STRING_LITERAL				{ $$ = TitleAttributeSemanticAction($3); free($3); }
 	| T_SHUFFLE T_ASSIGN boolean					{ $$ = ShuffleAttributeSemanticAction($3); }
-	| T_TIME T_ASSIGN T_DURATION					{ $$ = TimeAttributeSemanticAction($3); }
+	| T_TIME T_ASSIGN T_DURATION					{ $$ = TimeAttributeSemanticAction($3); free($3); }
 ;
 
 boolean
@@ -187,9 +224,9 @@ q_attr
 ;
 
 question_attr
-	: T_ID T_ASSIGN T_IDENTIFIER					{ $$ = IdAttributeSemanticAction($3); }
+	: T_ID T_ASSIGN T_IDENTIFIER					{ $$ = IdAttributeSemanticAction($3); free($3); }
 	| T_TYPE T_ASSIGN question_type					{ $$ = TypeAttributeSemanticAction($3); }
-	| T_TEXT T_ASSIGN T_STRING_LITERAL				{ $$ = TextAttributeSemanticAction($3); }
+	| T_TEXT T_ASSIGN T_STRING_LITERAL				{ $$ = TextAttributeSemanticAction($3); free($3); }
 	| T_OPTIONS T_ASSIGN set_literal				{ $$ = OptionsAttributeSemanticAction($3); }
 	| T_OPTIONS T_ASSIGN list_literal				{ $$ = OptionsAttributeSemanticAction($3); }
 	| T_ANSWER T_ASSIGN value						{ $$ = AnswerAttributeSemanticAction(CreateList($3)); }
@@ -197,14 +234,14 @@ question_attr
 	| T_POINTS T_ASSIGN T_NUMBER					{ $$ = PointsAttributeSemanticAction($3); }
 	| T_PARTIAL_CREDIT T_ASSIGN boolean				{ $$ = PartialCreditAttributeSemanticAction($3); }
 	| T_CASE_SENSITIVE T_ASSIGN boolean				{ $$ = CaseSensitiveAttributeSemanticAction($3); }
-    | T_TIME T_ASSIGN T_DURATION                    { $$ = TimeAttributeSemanticAction($3); }
+    | T_TIME T_ASSIGN T_DURATION                    { $$ = TimeAttributeSemanticAction($3); free($3); }
 ;
 
 question_type
 	: T_QTYPE_SHORT									{ $$ = ValueSemanticActionFromString("shortAnswer"); }
 	| T_QTYPE_MULTIPLE								{ $$ = ValueSemanticActionFromString("multipleChoice"); }
 	| T_QTYPE_BOOLEAN								{ $$ = ValueSemanticActionFromString("trueFalse"); }
-	| T_IDENTIFIER									{ $$ = ValueSemanticActionFromString($1); }
+	| T_IDENTIFIER								{ $$ = ValueSemanticActionFromString($1); free($1); }
 ;
 
 media_block
@@ -217,12 +254,12 @@ media_block
 
 media_items
 	: %empty										{ $$ = NULL; }
-	| media_items T_IMAGE T_LPAREN T_STRING_LITERAL T_RPAREN { $$ = AppendToList($1, MediaItemSemanticAction(MEDIA_IMAGE, $4, NULL)); }
-	| media_items T_IMAGE T_LPAREN T_STRING_LITERAL T_AS T_IDENTIFIER T_RPAREN { $$ = AppendToList($1, MediaItemSemanticAction(MEDIA_IMAGE, $4, $6)); }
-	| media_items T_AUDIO T_LPAREN T_STRING_LITERAL T_RPAREN { $$ = AppendToList($1, MediaItemSemanticAction(MEDIA_AUDIO, $4, NULL)); }
-	| media_items T_AUDIO T_LPAREN T_STRING_LITERAL T_AS T_IDENTIFIER T_RPAREN { $$ = AppendToList($1, MediaItemSemanticAction(MEDIA_AUDIO, $4, $6)); }
-	| media_items T_VIDEO T_LPAREN T_STRING_LITERAL T_RPAREN { $$ = AppendToList($1, MediaItemSemanticAction(MEDIA_VIDEO, $4, NULL)); }
-	| media_items T_VIDEO T_LPAREN T_STRING_LITERAL T_AS T_IDENTIFIER T_RPAREN { $$ = AppendToList($1, MediaItemSemanticAction(MEDIA_VIDEO, $4, $6)); }
+	| media_items T_IMAGE T_LPAREN T_STRING_LITERAL T_RPAREN { $$ = AppendToList($1, MediaItemSemanticAction(MEDIA_IMAGE, $4, NULL)); free($4); }
+	| media_items T_IMAGE T_LPAREN T_STRING_LITERAL T_AS T_IDENTIFIER T_RPAREN { $$ = AppendToList($1, MediaItemSemanticAction(MEDIA_IMAGE, $4, $6)); free($4); free($6); }
+	| media_items T_AUDIO T_LPAREN T_STRING_LITERAL T_RPAREN { $$ = AppendToList($1, MediaItemSemanticAction(MEDIA_AUDIO, $4, NULL)); free($4); }
+	| media_items T_AUDIO T_LPAREN T_STRING_LITERAL T_AS T_IDENTIFIER T_RPAREN { $$ = AppendToList($1, MediaItemSemanticAction(MEDIA_AUDIO, $4, $6)); free($4); free($6); }
+	| media_items T_VIDEO T_LPAREN T_STRING_LITERAL T_RPAREN { $$ = AppendToList($1, MediaItemSemanticAction(MEDIA_VIDEO, $4, NULL)); free($4); }
+	| media_items T_VIDEO T_LPAREN T_STRING_LITERAL T_AS T_IDENTIFIER T_RPAREN { $$ = AppendToList($1, MediaItemSemanticAction(MEDIA_VIDEO, $4, $6)); free($4); free($6); }
 ;
 
 list_literal
@@ -240,20 +277,20 @@ value_list
 ;
 
 value
-	: T_STRING_LITERAL								{ $$ = ValueSemanticActionFromString($1); }
+	: T_STRING_LITERAL							{ $$ = ValueSemanticActionFromString($1); free($1); }
 	| T_NUMBER										{ $$ = ValueSemanticActionFromNumber($1); }
 	| boolean										{ $$ = $1; } 
-	| T_SYMBOL_REF									{ $$ = ValueSemanticActionFromSymbol($1); }
+	| T_SYMBOL_REF							{ $$ = ValueSemanticActionFromSymbol($1); free($1); }
 ;
 
 conditional
 	: T_IF T_LPAREN expression T_RPAREN T_NEXT T_ASSIGN T_QUESTION T_LPAREN T_STRING_LITERAL T_RPAREN
 	{
-		$$ = ConditionalSemanticAction($3, $9, NULL);
+		$$ = ConditionalSemanticAction($3, $9, NULL); free($9);
 	}
 	| T_IF T_LPAREN expression T_RPAREN T_NEXT T_ASSIGN T_QUESTION T_LPAREN T_STRING_LITERAL T_RPAREN T_ELSE T_NEXT T_ASSIGN T_QUESTION T_LPAREN T_STRING_LITERAL T_RPAREN
 	{
-		$$ = ConditionalSemanticAction($3, $9, $16);
+		$$ = ConditionalSemanticAction($3, $9, $16); free($9); free($16);
 	}
 ;
 
@@ -273,7 +310,7 @@ expression
 
 term
 	: T_NUMBER										{ $$ = NumberTermSemanticAction($1); }
-	| T_IDENTIFIER									{ $$ = IdentifierTermSemanticAction($1); }
+	| T_IDENTIFIER							{ $$ = IdentifierTermSemanticAction($1); free($1); }
 	| T_POINTS										{ $$ = KeywordTermSemanticAction(KEYWORD_POINTS); }
 	| T_SCORE_VAR									{ $$ = KeywordTermSemanticAction(KEYWORD_SCORE); }
 	| T_TIMELEFT_VAR								{ $$ = KeywordTermSemanticAction(KEYWORD_TIMELEFT); }

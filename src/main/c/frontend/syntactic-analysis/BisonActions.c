@@ -201,9 +201,9 @@ MediaItemNode * MediaItemSemanticAction(MediaType type, char * path, char * alia
     _logSyntacticAnalyzerAction(__FUNCTION__);
     MediaItemNode * item = calloc(1, sizeof(MediaItemNode));
     item->type = type;
-    item->path = path;
+    item->path = path ? strdup(path) : NULL;
     if (alias) {
-        item->alias = alias;
+        item->alias = strdup(alias);
     }
     return item;
 }
@@ -212,9 +212,9 @@ ConditionalNode * ConditionalSemanticAction(ExpressionNode * condition, char * i
     _logSyntacticAnalyzerAction(__FUNCTION__);
     ConditionalNode * node = calloc(1, sizeof(ConditionalNode));
     node->condition = condition;
-    node->ifTargetId = ifTarget;
+    node->ifTargetId = ifTarget ? strdup(ifTarget) : NULL;
     if (elseTarget) {
-        node->elseTargetId = elseTarget;
+        node->elseTargetId = strdup(elseTarget);
     }
     return node;
 }
