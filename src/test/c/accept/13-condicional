@@ -18,5 +18,13 @@ quiz {
     }
 
     if (score >= 1) next = question("bonus")
+
+    question {
+      id = q2
+      type = trueFalse
+      text = "El hielo contiene oxígeno"
+      answer = false
+      points = 1
+    }
   }
 }

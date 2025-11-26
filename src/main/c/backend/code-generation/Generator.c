@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <stdlib.h>
 #include <ctype.h>
 
 static Logger * _logger = NULL;
@@ -27,233 +28,406 @@ static void _output(FILE * file, const char * const format, ...) {
     va_end(arguments);
 }
 
-static void _generateHeader(FILE * out) {
+// Limpia comillas para IDs
+static void _printCleanId(FILE * out, char * str) {
+    if (!str) return;
+    int len = strlen(str);
+    if (len >= 2 && (str[0] == '"' || str[0] == '\'')) {
+        char buffer[256];
+        strncpy(buffer, str + 1, len - 2);
+        buffer[len - 2] = '\0';
+        fprintf(out, "%s", buffer);
+    } else {
+        fprintf(out, "%s", str);
+    }
+}
+
+static int _parseTimeToSeconds(char * timeStr) {
+    if (!timeStr) return 0;
+    char * temp = strdup(timeStr);
+    char * valPart = strtok(temp, " ");
+    char * unitPart = strtok(NULL, " ");
+    
+    if (!valPart) { free(temp); return 0; }
+    
+    double val = atof(valPart);
+    int sec = (int)val;
+    if (unitPart && strstr(unitPart,"m")) sec = (int)(val * 60);
+    
+    free(temp);
+    return sec;
+}
+
+static double _extractValue(ExpressionNode * expr) {
+    if (!expr) return 0.0;
+    if (expr->nodeType == EXPRESSION_NODE_TERM && expr->termType == TERM_NUMBER)
+        return expr->value->numberValue;
+    if (expr->nodeType == EXPRESSION_NODE_BINARY) {
+        double l = _extractValue(expr->left);
+        double r = _extractValue(expr->right);
+        if (expr->op == OP_ADD) return l + r;
+        if (expr->op == OP_SUB) return l - r;
+        if (expr->op == OP_MUL) return l * r;
+        if (expr->op == OP_DIV && r != 0) return l / r;
+    }
+    return 0.0;
+}
+
+// Estructura HTML
+static void _generateHeader(FILE * out, Program * p) {
     _output(out, "<!DOCTYPE html>\n<html lang='es'>\n<head>\n");
     _output(out, "<meta charset='UTF-8'>\n<meta name='viewport' content='width=device-width, initial-scale=1.0'>\n");
     _output(out, "<title>Quizzy</title>\n");
     _output(out, "<style>\n");
-    _output(out, "  :root { --primary: #6366f1; --surface: #ffffff; --bg: #f3f4f6; --text: #1f2937; --success: #22c55e; --error: #ef4444; }\n");
-    _output(out, "  body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 2rem; display: flex; justify-content: center; }\n");
-    _output(out, "  .quiz-wrapper { background: var(--surface); width: 100%%; max-width: 700px; padding: 2rem; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }\n");
-    _output(out, "  h1 { text-align: center; color: var(--primary); margin-bottom: 2rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; }\n");
-    _output(out, "  .question-card { margin-bottom: 2rem; padding: 1.5rem; border: 2px solid #e5e7eb; border-radius: 12px; background: #fafafa; transition: all 0.3s ease; }\n");
-    _output(out, "  .question-text { font-size: 1.15rem; font-weight: 600; margin-bottom: 1rem; display: block; }\n");
-    _output(out, "  .options-list { display: flex; flex-direction: column; gap: 0.75rem; }\n");
-    _output(out, "  .option-item { display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; border: 1px solid #d1d5db; background: white; cursor: pointer; transition: all 0.2s; }\n");
-    _output(out, "  .option-item:hover { border-color: var(--primary); background: #eef2ff; }\n");
-    _output(out, "  .option-item input { margin-right: 10px; accent-color: var(--primary); transform: scale(1.2); }\n");
-    _output(out, "  input[type='text'] { width: 100%%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem; margin-top: 10px; box-sizing: border-box; }\n");
-    _output(out, "  input[type='text']:focus { outline: none; border-color: var(--primary); ring: 2px solid var(--primary); }\n");
+    _output(out, "  :root { --primary: #6366f1; --bg: #f3f4f6; --text: #1f2937; --green: #10b981; --red: #ef4444; --orange: #f59e0b; }\n");
+    _output(out, "  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; }\n");
+    _output(out, "  .quiz-container { background: white; width: 100%%; max-width: 700px; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; min-height: 400px; display: flex; flex-direction: column; overflow: hidden; }\n");
+    _output(out, "  h1 { text-align: center; color: var(--primary); border-bottom: 2px solid #eef2ff; padding-bottom: 20px; margin-top: 0; }\n");
+    _output(out, "  .question-card { display: none; flex-grow: 1; animation: slideUp 0.4s ease-out; position: relative; }\n");
+    _output(out, "  .question-card.active { display: block; }\n");
+    _output(out, "  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }\n");
     
-    _output(out, "  .correct { border-color: var(--success); background-color: #f0fdf4; }\n");
-    _output(out, "  .incorrect { border-color: var(--error); background-color: #fef2f2; }\n");
-    _output(out, "  .feedback { font-weight: bold; margin-top: 10px; display: none; }\n");
+    // Pregunta
+    _output(out, "  .q-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }\n");
+    _output(out, "  .q-text { font-size: 1.3rem; font-weight: 600; line-height: 1.5; color: #111; flex: 1; margin-right: 15px; }\n");
+    _output(out, "  .opt-label { display: flex; align-items: center; padding: 15px; border: 2px solid #e5e7eb; border-radius: 10px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; font-weight: 500; }\n");
+    _output(out, "  .opt-label:hover { background: #eef2ff; border-color: var(--primary); transform: translateX(5px); }\n");
+    _output(out, "  .opt-label input { margin-right: 15px; transform: scale(1.3); accent-color: var(--primary); }\n");
+    _output(out, "  input[type='text'] { width: 100%%; padding: 15px; border-radius: 10px; border: 2px solid #e5e7eb; font-size: 1rem; transition: 0.3s; outline: none; box-sizing: border-box; }\n");
+    _output(out, "  input[type='text']:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }\n");
     
-    _output(out, "  .btn-submit { background: var(--primary); color: white; width: 100%%; padding: 1rem; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 1rem; transition: background 0.2s; }\n");
-    _output(out, "  .btn-submit:hover { background: #4f46e5; }\n");
+    // Boton
+    _output(out, "  .btn-next { width: 100%%; background: var(--primary); color: white; padding: 15px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 25px; transition: transform 0.1s, background 0.2s; box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2); }\n");
+    _output(out, "  .btn-next:hover { background: #4f46e5; transform: translateY(-2px); }\n");
+    _output(out, "  .btn-next:active { transform: translateY(0); }\n");
+    
+    // Timer global
+    _output(out, "  .timer { position: absolute; top: 20px; right: 20px; background: white; color: var(--text); padding: 8px 16px; border-radius: 50px; font-weight: 700; font-family: monospace; font-size: 1.2rem; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid var(--primary); z-index: 10; transition: all 0.3s ease; }\n");
+    _output(out, "  .timer.danger { border-color: var(--red); color: var(--red); background: #fef2f2; animation: pulse 1s infinite; }\n");
+    
+    // Timer pregunta
+    _output(out, "  .q-timer-badge { display: inline-flex; align-items: center; background: #fffbeb; color: #b45309; border: 2px solid var(--orange); padding: 5px 12px; border-radius: 20px; font-weight: bold; font-family: monospace; font-size: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); white-space: nowrap; }\n");
+    _output(out, "  .q-timer-badge span { margin-left: 5px; font-size: 1.1em; }\n");
+    
+    _output(out, "  @keyframes pulse { 0%% { transform: scale(1); } 50%% { transform: scale(1.05); } 100%% { transform: scale(1); } }\n");
+
+    // (Verde/Rojo)
+    _output(out, "  .result-box { text-align: center; padding: 40px; border-radius: 12px; display: none; flex-direction: column; justify-content: center; height: 100%%; animation: fadeIn 0.5s; }\n");
+    _output(out, "  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }\n");
+    _output(out, "  .pass { background: #ecfdf5; border: 2px solid var(--green); color: #065f46; }\n");
+    _output(out, "  .fail { background: #fef2f2; border: 2px solid var(--red); color: #991b1b; }\n");
+    _output(out, "  .score-num { font-size: 3.5rem; font-weight: 800; margin: 10px 0; letter-spacing: -1px; }\n");
     _output(out, "</style>\n");
     _output(out, "</head>\n<body>\n");
-    _output(out, "<div class='quiz-wrapper'>\n");
+    _output(out, "<div class='quiz-container'>\n");
+
+    if (p->quiz->time) {
+        int sec = _parseTimeToSeconds(p->quiz->time);
+        _output(out, "  <div id='timer' class='timer' data-sec='%d'></div>\n", sec);
+    }
+    double pWrong=0, pTimeout=0;
+    if (p->quiz->scoring) {
+        ListNode * r = p->quiz->scoring->rules;
+        while(r) {
+            ScoringRuleNode * rule = (ScoringRuleNode*)r->data;
+            if (rule->type == SCORING_WRONG) pWrong = _extractValue(rule->expression);
+            if (rule->type == SCORING_TIMEOUT) pTimeout = _extractValue(rule->expression);
+            r = r->next;
+        }
+    }
+    _output(out, "  <input type='hidden' id='p-wrong' value='%.2f'>\n", pWrong);
+    _output(out, "  <input type='hidden' id='p-timeout' value='%.2f'>\n", pTimeout);
 }
 
-static void _generateFooter(FILE * out) {
-    _output(out, "  <div id='result-display' class='result-box'></div>\n");
-    
-    // Botón
-    _output(out, "  <button class='btn-submit' onclick='evaluateQuiz()'>Enviar Quiz</button>\n");
+//Logica saltos
+
+static void _printJumps(ListNode * list, FILE * out) {
+    _output(out, "const jumps = [\n");
+    while(list) {
+        ConditionalNode * c = (ConditionalNode*)list->data;
+        if (c->condition->nodeType == EXPRESSION_NODE_BINARY && c->ifTargetId) {
+            double t = _extractValue(c->condition->right);
+            _output(out, "  { threshold: %.2f, target: '", t);
+            _printCleanId(out, c->ifTargetId);
+            _output(out, "' },\n");
+        }
+        list = list->next;
+    }
+    _output(out, "];\n");
+}
+
+static void _generateFooter(FILE * out, Program * p) {
+    _output(out, "  <div id='result' class='result-box'></div>\n");
     _output(out, "</div>\n");
-
-    // Estilos extra para la caja de resultados
-    _output(out, "<style>\n");
-    _output(out, "  .result-box { margin-top: 20px; padding: 20px; border-radius: 10px; text-align: center; display: none; animation: fadeIn 0.5s; }\n");
-    _output(out, "  .result-score { font-size: 2.5rem; font-weight: bold; color: var(--primary); display: block; margin: 10px 0; }\n");
-    _output(out, "  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }\n");
-    _output(out, "</style>\n");
-
-    // SCRIPT JS
     _output(out, "<script>\n");
-    _output(out, "function evaluateQuiz() {\n");
-    _output(out, "  let score = 0;\n");
-    _output(out, "  let total = 0;\n");
-    _output(out, "  const cards = document.querySelectorAll('.question-card');\n");
-    _output(out, "  \n");
-    _output(out, "  cards.forEach(card => {\n");
-    _output(out, "    total++;\n");
-    _output(out, "    const correctAnswer = card.dataset.answer;\n");
-    _output(out, "    const type = card.dataset.type;\n");
-    _output(out, "    const feedback = card.querySelector('.feedback');\n");
-    _output(out, "    let userAnswer = '';\n");
-    _output(out, "    \n");
-    _output(out, "    if (type === 'multipleChoice' || type === 'trueFalse') {\n");
-    _output(out, "      const selected = card.querySelector('input:checked');\n");
-    _output(out, "      if (selected) userAnswer = selected.value;\n");
-    _output(out, "    } else {\n");
-    _output(out, "      const input = card.querySelector('input[type=\"text\"]');\n");
-    _output(out, "      if (input) userAnswer = input.value.trim();\n");
-    _output(out, "    }\n");
-    _output(out, "    \n");
-    _output(out, "    // Lógica de comparación simple\n");
-    _output(out, "    if (userAnswer && userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {\n");
-    _output(out, "      score++;\n");
-    _output(out, "      card.classList.add('correct');\n");
-    _output(out, "      card.classList.remove('incorrect');\n");
-    _output(out, "      feedback.style.color = 'var(--success)';\n");
-    _output(out, "      feedback.textContent = '¡Correcto!';\n");
-    _output(out, "    } else {\n");
-    _output(out, "      card.classList.add('incorrect');\n");
-    _output(out, "      card.classList.remove('correct');\n");
-    _output(out, "      feedback.style.color = 'var(--error)';\n");
-    _output(out, "      feedback.textContent = 'Incorrecto. La respuesta era: ' + correctAnswer;\n");
-    _output(out, "    }\n");
-    _output(out, "    feedback.style.display = 'block';\n");
-    _output(out, "  });\n");
-    _output(out, "  \n");
     
-    _output(out, "  const resultDisplay = document.getElementById('result-display');\n");
-    _output(out, "  resultDisplay.style.display = 'block';\n");
+    if (p->quiz->questions) _printJumps(p->quiz->questions->conditionals, out);
+    else _output(out, "const jumps = [];\n");
     
-    // Color de fondo segun la nota
-    _output(out, "  if (score / total >= 0.5) {\n");
-    _output(out, "     resultDisplay.style.backgroundColor = '#dcfce7';\n"); // Verde
-    _output(out, "     resultDisplay.style.border = '2px solid #22c55e';\n");
-    _output(out, "     resultDisplay.innerHTML = `<h3>¡Bien hecho!</h3><span class='result-score'>${score} / ${total}</span><p>Has aprobado el cuestionario.</p>`;\n");
-    _output(out, "  } else {\n");
-    _output(out, "     resultDisplay.style.backgroundColor = '#fee2e2';\n"); // Rojo
-    _output(out, "     resultDisplay.style.border = '2px solid #ef4444';\n");
-    _output(out, "     resultDisplay.innerHTML = `<h3>Sigue intentando</h3><span class='result-score'>${score} / ${total}</span><p>Repasa los conceptos e inténtalo de nuevo.</p>`;\n");
-    _output(out, "  }\n");
+    _output(out, "const cards = Array.from(document.querySelectorAll('.question-card'));\n");
+    _output(out, "let idx = 0;\n");
+    _output(out, "let score = 0;\n");
+    _output(out, "let maxScore = 0;\n");
     
-    _output(out, "  resultDisplay.scrollIntoView({ behavior: 'smooth' });\n");
+    _output(out, "let qInterval = null;\n");
+    
+    _output(out, "if(cards.length > 0) {\n");
+    _output(out, "  cards[0].classList.add('active');\n");
+    _output(out, "  startQTimer(cards[0]);\n");
     _output(out, "}\n");
-    _output(out, "</script>\n");
     
-    _output(out, "</body>\n</html>\n");
+    // Identificar Bonus
+    _output(out, "const lockedIds = new Set(jumps.map(j => j.target));\n");
+    
+    // Timer GLOBAL
+    _output(out, "const timerEl = document.getElementById('timer');\n");
+    _output(out, "let time = timerEl ? parseInt(timerEl.dataset.sec) : 0;\n");
+    _output(out, "let interval;\n");
+    _output(out, "if(time > 0) {\n");
+    _output(out, "  timerEl.style.display='block';\n");
+    _output(out, "  updateTimerDisplay();\n");
+    _output(out, "  interval = setInterval(()=>{\n");
+    _output(out, "    time--;\n");
+    _output(out, "    updateTimerDisplay();\n");
+    _output(out, "    if(time<=0) { clearInterval(interval); finish(true); }\n");
+    _output(out, "  }, 1000);\n");
+    _output(out, "}\n");
+
+    _output(out, "function updateTimerDisplay() {\n");
+    _output(out, "    let m=Math.floor(time/60), s=time%%60;\n");
+    _output(out, "    timerEl.innerText = `${m}:${s<10?'0':''}${s}`;\n");
+    _output(out, "    if(time <= 10) timerEl.classList.add('danger');\n");
+    _output(out, "}\n");
+    
+    // TIMER PREGUNTA
+    _output(out, "function startQTimer(card) {\n");
+    _output(out, "  if(!card) return;\n");
+    _output(out, "  const tVal = parseInt(card.dataset.qtime) || 0;\n");
+    _output(out, "  if(tVal <= 0) return;\n");
+    _output(out, "  let curr = tVal;\n");
+    _output(out, "  const display = card.querySelector('.q-val');\n");
+    _output(out, "  if(display) display.innerText = curr;\n");
+    _output(out, "  qInterval = setInterval(()=>{\n");
+    _output(out, "    curr--;\n");
+    _output(out, "    if(display) display.innerText = curr;\n");
+    _output(out, "    if(curr <= 0) {\n");
+    _output(out, "      clearInterval(qInterval);\n");
+    _output(out, "      // Forzar siguiente pregunta\n");
+    _output(out, "      const btn = card.querySelector('.btn-next');\n");
+    _output(out, "      if(btn) btn.click();\n");
+    _output(out, "    }\n");
+    _output(out, "  }, 1000);\n");
+    _output(out, "}\n");
+    
+    _output(out, "function next(btn) {\n");
+    _output(out, "  // Detener timer de la pregunta actual si existe\n");
+    _output(out, "  if(qInterval) { clearInterval(qInterval); qInterval=null; }\n");
+
+    _output(out, "  const card = btn.closest('.question-card');\n");
+    _output(out, "  if(card.dataset.processed) return;\n");
+    _output(out, "  card.dataset.processed = 'true';\n");
+
+    _output(out, "  const pts = parseFloat(card.dataset.p) || 0;\n");
+    _output(out, "  const pWrong = parseFloat(document.getElementById('p-wrong').value);\n");
+    _output(out, "  const ans = card.dataset.ans;\n");
+    _output(out, "  const type = card.dataset.type;\n");
+    _output(out, "  const caseSens = card.dataset.case === 'true';\n");
+
+    _output(out, "  const isBonus = lockedIds.has(card.id);\n");
+
+    _output(out, "  let user = '';\n");
+    _output(out, "  if(type.includes('multiple') || type.includes('true')) {\n");
+    _output(out, "    const el = card.querySelector('input:checked');\n");
+    _output(out, "    if(el) user = el.value;\n");
+    _output(out, "  } else {\n");
+    _output(out, "    const el = card.querySelector('input[type=text]');\n");
+    _output(out, "    if(el) user = el.value.trim();\n");
+    _output(out, "  }\n");
+
+    _output(out, "  let correct = false;\n");
+    _output(out, "  if(user) {\n");
+    _output(out, "    if(caseSens) correct = (user === ans);\n");
+    _output(out, "    else correct = (user.toLowerCase() === ans.toLowerCase());\n");
+    _output(out, "    if(!correct && ans.includes(',')) {\n");
+    _output(out, "       if(ans.split(',').some(a=>a.trim().toLowerCase()===user.toLowerCase())) correct = true;\n");
+    _output(out, "    }\n");
+    _output(out, "  }\n");
+
+    _output(out, "  if(correct) { \n");
+    _output(out, "      score += pts; \n");
+    _output(out, "      if(!isBonus) maxScore += pts; \n");
+    _output(out, "  } else { \n");
+    _output(out, "      if(!isBonus) { \n");
+    _output(out, "          score += pWrong; \n");
+    _output(out, "          maxScore += pts; \n");
+    _output(out, "      }\n");
+    _output(out, "  }\n");
+
+    _output(out, "  card.classList.remove('active');\n");
+
+    // Lógica de Salto
+    _output(out, "  let targetId = null;\n");
+    _output(out, "  for(let j of jumps) {\n");
+    _output(out, "    const destCard = document.getElementById(j.target);\n");
+    _output(out, "    if(destCard && cards.indexOf(destCard) === idx + 1) {\n");
+    _output(out, "       if(score >= j.threshold) targetId = j.target;\n");
+    _output(out, "    }\n");
+    _output(out, "  }\n");
+
+    _output(out, "  let nextCard = null;\n");
+    _output(out, "  if(targetId) {\n");
+    _output(out, "    nextCard = document.getElementById(targetId);\n");
+    _output(out, "    if(nextCard) idx = cards.indexOf(nextCard);\n");
+    _output(out, "  }\n");
+
+    _output(out, "  if(!nextCard) {\n");
+    _output(out, "    let nextIdx = idx + 1;\n");
+    _output(out, "    while(nextIdx < cards.length && lockedIds.has(cards[nextIdx].id)) {\n");
+    _output(out, "        nextIdx++;\n");
+    _output(out, "    }\n");
+    _output(out, "    if(nextIdx < cards.length) {\n");
+    _output(out, "        idx = nextIdx;\n");
+    _output(out, "        nextCard = cards[idx];\n");
+    _output(out, "    }\n");
+    _output(out, "  }\n");
+
+    _output(out, "  if(nextCard) {\n");
+    _output(out, "      nextCard.classList.add('active');\n");
+    _output(out, "      startQTimer(nextCard);\n");
+    _output(out, "  } else finish(false);\n");
+    _output(out, "}\n");
+
+    _output(out, "function finish(timeout) {\n");
+    _output(out, "  clearInterval(interval);\n");
+    _output(out, "  if(qInterval) clearInterval(qInterval);\n");
+    _output(out, "  const res = document.getElementById('result');\n");
+    _output(out, "  cards.forEach(c => c.style.display='none');\n");
+    _output(out, "  document.querySelector('h1').style.display='none';\n");
+    _output(out, "  if(timerEl) timerEl.style.display='none';\n");
+
+    _output(out, "  const isPass = maxScore > 0 ? (score/maxScore >= 0.5) : false;\n");
+    _output(out, "  res.className = 'result-box ' + (isPass ? 'pass' : 'fail');\n");
+    _output(out, "  res.style.display = 'flex';\n");
+    _output(out, "  let html = timeout ? '<h3>¡Tiempo Agotado!</h3>' : '';\n");
+    _output(out, "  html += isPass ? '<h1>¡Felicidades!</h1>' : '<h1>Inténtalo de Nuevo</h1>';\n");
+    _output(out, "  html += `<div class='score-num'>${score.toFixed(1)} / ${maxScore.toFixed(1)}</div>`;\n");
+    _output(out, "  html += `<p>Puntos Finales</p>`;\n");
+    _output(out, "  res.innerHTML = html;\n");
+    _output(out, "}\n");
+    _output(out, "</script>\n</body>\n</html>\n");
 }
 
 
-static void _generateOptions(QuestionNode * question, int index, FILE * out) {
-    _output(out, "    <div class='options-list'>\n");
-    
-    ListNode * current = question->options;
-    while (current != NULL) {
-        ValueNode * valNode = (ValueNode *) current->data;
-        if (valNode && valNode->stringValue) {
-            _output(out, "      <label class='option-item'>\n");
-            _output(out, "        <input type='radio' name='q%d' value='%s'>\n", index, valNode->stringValue);
-            _output(out, "        <span>%s</span>\n", valNode->stringValue);
-            _output(out, "      </label>\n");
+static void _genMedia(MediaNode * m, FILE * out) {
+    if(!m || !m->items) return;
+    _output(out, "<div style='text-align:center; margin-bottom:20px;'>\n");
+    ListNode * cur = m->items;
+    while(cur) {
+        MediaItemNode * i = (MediaItemNode*)cur->data;
+        if(i->path) {
+            if(i->type == MEDIA_AUDIO) _output(out, "<audio controls src='%s' style='width:100%%; margin-top:10px;'></audio>\n", i->path);
+            else if(i->type == MEDIA_IMAGE) _output(out, "<img src='%s' style='max-width:100%%;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,0.1);'>\n", i->path);
         }
-        current = current->next;
+        cur = cur->next;
     }
-    _output(out, "    </div>\n");
+    _output(out, "</div>\n");
 }
 
-static void _generateTrueFalse(int index, FILE * out) {
-    _output(out, "    <div class='options-list' style='flex-direction: row; gap: 1rem;'>\n");
-    _output(out, "      <label class='option-item' style='flex:1; justify-content: center;'>\n");
-    _output(out, "        <input type='radio' name='q%d' value='true'> Verdadero\n", index);
-    _output(out, "      </label>\n");
-    _output(out, "      <label class='option-item' style='flex:1; justify-content: center;'>\n");
-    _output(out, "        <input type='radio' name='q%d' value='false'> Falso\n", index);
-    _output(out, "      </label>\n");
-    _output(out, "    </div>\n");
-}
-
-static void _generateShortAnswer(int index, FILE * out) {
-    _output(out, "    <input type='text' name='q%d' placeholder='Escribe tu respuesta aquí...'>\n", index);
-}
-
-static void _printCorrectAnswer(QuestionNode * question, FILE * out) {
-    if (question->answer != NULL && question->answer->data != NULL) {
-        ValueNode * ansNode = (ValueNode *) question->answer->data;
-        
-        if (ansNode->type == VAL_STRING || ansNode->type == VAL_SYMBOL) {
-            _output(out, "%s", ansNode->stringValue);
-        } else if (ansNode->type == VAL_NUMBER) {
-            _output(out, "%.2f", ansNode->numberValue);
-        } else if (ansNode->type == VAL_BOOLEAN) {
-            _output(out, "%s", ansNode->booleanValue ? "true" : "false");
+static void _genOpts(QuestionNode * q, int idx, FILE * out) {
+    _output(out, "<div style='display:flex; flex-direction:column; gap:10px;'>\n");
+    ListNode * cur = q->options;
+    while(cur) {
+        ValueNode * v = (ValueNode*)cur->data;
+        if(v) {
+            char * s = (v->type == VAL_STRING || v->type == VAL_SYMBOL) ? v->stringValue : "Opción";
+            if(v->type == VAL_NUMBER) { static char b[32]; snprintf(b,32,"%.2f",v->numberValue); s=b; }
+            _output(out, "<label class='opt-label'><input type='radio' name='q%d' value='%s'> %s</label>\n", idx, s, s);
         }
-    } else {
-        _output(out, "undefined");
+        cur = cur->next;
+    }
+    _output(out, "</div>\n");
+}
+
+static void _genAns(QuestionNode * q, FILE * out) {
+    if(!q->answer) return;
+    if(q->answer->next) {
+        ListNode * n = q->answer;
+        int f=1;
+        while(n) {
+            ValueNode * v = (ValueNode*)n->data;
+            if(!f) _output(out, ",");
+            if(v->type==VAL_STRING || v->type==VAL_SYMBOL) _output(out,"%s",v->stringValue);
+            f=0; n=n->next;
+        }
+    } else if(q->answer->data) {
+        ValueNode * v = (ValueNode*)q->answer->data;
+        if(v->type==VAL_STRING || v->type==VAL_SYMBOL) _output(out,"%s",v->stringValue);
+        else if(v->type==VAL_BOOLEAN) _output(out,"%s",v->booleanValue?"true":"false");
+        else if(v->type==VAL_NUMBER) _output(out,"%.2f",v->numberValue);
     }
 }
 
-static void _generateQuestion(QuestionNode * question, int index, FILE * out) {
-    if (!question) return;
-
-    _output(out, "  <div class='question-card' id='%s' data-type='%s' data-answer='", 
-            question->id ? question->id : "q",
-            question->type ? question->type : "shortAnswer");
+static void _generateQuestion(QuestionNode * q, int idx, FILE * out) {
+    if(!q) return;
+    double pts = q->points ? q->points->numberValue : 0;
     
-    _printCorrectAnswer(question, out);
+    // Calcular tiempo de la pregunta
+    int qSec = q->time ? _parseTimeToSeconds(q->time) : 0;
     
+    _output(out, "<div class='question-card' id='");
+    if (q->id) _printCleanId(out, q->id);
+    else _output(out, "q_%d", idx);
+    _output(out, "' ");
+    
+    const char * cs = (q->caseSensitive && q->caseSensitive->booleanValue) ? "true":"false";
+    _output(out, "data-type='%s' data-p='%.2f' data-case='%s' data-qtime='%d' data-ans='",
+            q->type ? q->type : "shortAnswer", pts, cs, qSec);
+    _genAns(q, out);
     _output(out, "'>\n");
     
-    // Texto de la pregunta
-    if (question->text) {
-        _output(out, "    <span class='question-text'>%d. %s</span>\n", index + 1, question->text);
-    }
-
-    // Logica basada en el TIPO
-    if (question->type != NULL) {
-        if (strcmp(question->type, "multipleChoice") == 0) {
-            _generateOptions(question, index, out);
-        } else if (strcmp(question->type, "trueFalse") == 0) {
-            _generateTrueFalse(index, out);
-        } else {
-            _generateShortAnswer(index, out);
-        }
-    } else {
-        if (question->options != NULL) _generateOptions(question, index, out);
-        else _generateShortAnswer(index, out);
-    }
-
-    _output(out, "    <div class='feedback'></div>\n");
-    _output(out, "  </div>\n");
-}
-
-static void _generateBody(Program * program, FILE * out) {
-    if (!program || !program->quiz) return;
-
-    if (program->quiz->title) {
-        _output(out, "  <h1>%s</h1>\n", program->quiz->title);
-    } else {
-        _output(out, "  <h1>Cuestionario</h1>\n");
-    }
-
-    if (program->quiz->questions != NULL) {
-        ListNode * currentList = program->quiz->questions->questions;
-        int index = 0;
-        while (currentList != NULL) {
-            QuestionNode * q = (QuestionNode *) currentList->data;
-            _generateQuestion(q, index, out);
-            currentList = currentList->next;
-            index++;
-        }
-    }
-}
-
-/* --- FUNCION PUBLICA --- */
-
-void executeGenerator(CompilerState * compilerState) {
-    logDebugging(_logger, "Generando archivo de salida (quiz.html)...");
+    _output(out, "<div class='q-header'>\n");
+    if(q->text) _output(out, "  <span class='q-text'>%s</span>\n", q->text);
     
+    if(qSec > 0) {
+        _output(out, "  <div class='q-timer-badge'>⏳ <span class='q-val'>%d</span>s</div>\n", qSec);
+    }
+    _output(out, "</div>\n");
+
+    _genMedia(q->media, out);
+    
+    if(q->type && !strcmp(q->type, "multipleChoice")) _genOpts(q, idx, out);
+    else if(q->type && !strcmp(q->type, "trueFalse")) {
+        _output(out, "<div style='display:flex; gap:15px;'>");
+        _output(out, "<label class='opt-label' style='flex:1;justify-content:center;'><input type='radio' name='q%d' value='true'> Verdadero</label>", idx);
+        _output(out, "<label class='opt-label' style='flex:1;justify-content:center;'><input type='radio' name='q%d' value='false'> Falso</label>", idx);
+        _output(out, "</div>");
+    } else {
+        _output(out, "<input type='text' name='q%d' placeholder='Escribe tu respuesta aquí...'>\n", idx);
+    }
+    _output(out, "<button class='btn-next' onclick='next(this)'>Continuar</button>\n");
+    _output(out, "</div>\n");
+}
+
+static void _generateBody(Program * p, FILE * out) {
+    if(!p || !p->quiz) return;
+    if(p->quiz->title) _output(out, "<h1>%s</h1>\n", p->quiz->title);
+    if(p->quiz->questions) {
+        ListNode * c = p->quiz->questions->questions;
+        int i=0;
+        while(c) {
+            _generateQuestion((QuestionNode*)c->data, i++, out);
+            c = c->next;
+        }
+    }
+}
+
+void executeGenerator(CompilerState * cs) {
+    logDebugging(_logger, "Generando quiz.html...");
     FILE * out = fopen("quiz.html", "w");
-    
-    if (out == NULL) {
-        logError(_logger, "Error: No se pudo crear el archivo quiz.html");
-        return;
+    if(out && cs->abstractSyntaxtTree) {
+        _generateHeader(out, cs->abstractSyntaxtTree);
+        _generateBody(cs->abstractSyntaxtTree, out);
+        _generateFooter(out, cs->abstractSyntaxtTree);
+        fclose(out);
     }
-
-    if (compilerState->abstractSyntaxtTree != NULL) {
-        _generateHeader(out);
-        _generateBody(compilerState->abstractSyntaxtTree, out);
-        _generateFooter(out);
-        logDebugging(_logger, "¡Éxito! El archivo 'quiz.html' ha sido generado.");
-    } else {
-        logError(_logger, "El AST es NULL. No se puede generar código.");
-    }
-    
-    fclose(out);
 }

@@ -45,5 +45,13 @@ quiz {
       answer = "Quizzy"
       points = 5
     }
+
+    question {
+      id = q4
+      type = trueFalse
+      text = "El oxígeno tiene símbolo químico O₂."
+      answer = false
+      points = 1
+    }
   }
 }
