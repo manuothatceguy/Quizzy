@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <sys/stat.h>
 
 static Logger * _logger = NULL;
 
@@ -96,6 +97,29 @@ static bool _validateGlobalConstraints(Program * program) {
     return valid;
 }
 
+static bool _fileExists(const char *path) {
+    if (!path || !*path) return false;
+    struct stat st;
+    if (stat(path, &st) != 0) return false;
+    return S_ISREG(st.st_mode);
+}
+
+static bool _validateMedia(const MediaNode *media) {
+    if (!media) return true; // media opcional
+    for (ListNode *it = media->items; it; it = it->next) {
+        MediaItemNode *item = (MediaItemNode *) it->data;
+        if (!item || !item->path || !*item->path) {
+            logError(_logger, "Error: Media inválido. Item sin path.");
+            return false;
+        }
+        if (!_fileExists(item->path)) {
+            logError(_logger, "Error: Media inválido. Archivo no existe: %s", item->path);
+            return false;
+        }
+    }
+    return true;
+}
+
 static bool _validateQuestionLogic(QuestionNode * q) {
     bool valid = true;
 
@@ -126,6 +150,12 @@ static bool _validateQuestionLogic(QuestionNode * q) {
     // Tiempo local inválido
     if (_isTimeNegative(q->time)) {
         logError(_logger, "Error: Pregunta (ID: %s) tiene tiempo negativo.", q->id ? q->id : "?");
+        valid = false;
+    }
+
+    // Media inválida
+    if (!_validateMedia(q->media)) {
+        logError(_logger, "Error: Pregunta (ID: %s) tiene media inválida.", q->id ? q->id : "?");
         valid = false;
     }
 

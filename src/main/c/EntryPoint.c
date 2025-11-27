@@ -34,7 +34,7 @@ const int main(const int length, const char ** arguments) {
     CompilationStatus compilationStatus = executeSyntacticAnalysis();
     Program * program = compilerState.abstractSyntaxtTree;
     
-if (compilationStatus == SUCCEEDED) {
+    if (compilationStatus == SUCCEEDED) {
         logDebugging(logger, "Syntactic analysis succeeded. Running Semantic Analysis...");
 
         bool isSemanticallyValid = executeAnalyzer(&compilerState);

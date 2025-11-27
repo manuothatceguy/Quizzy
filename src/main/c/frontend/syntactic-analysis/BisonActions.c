@@ -1,6 +1,7 @@
 #include "BisonActions.h"
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 
 static CompilerState * _compilerState = NULL;
 static Logger * _logger = NULL;
