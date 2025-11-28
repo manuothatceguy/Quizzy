@@ -30,6 +30,12 @@ extern CompilationStatus NumberLexemeAction();
 extern CompilationStatus DurationLexemeAction();
 extern CompilationStatus SymbolRefLexemeAction();
 
+// para los strings (bye bye backtracking)
+extern CompilationStatus EnterStringLexemeAction(FlexContext context);
+extern CompilationStatus AppendStringLexemeAction(const char * text, int length);
+extern CompilationStatus LeaveStringLexemeAction();
+extern CompilationStatus UnterminatedStringLexemeAction();
+
 %}
 
 /**
@@ -38,6 +44,7 @@ extern CompilationStatus SymbolRefLexemeAction();
  * @see https://westes.github.io/flex/manual/Start-Conditions.html
  */
 %x MULTILINE_COMMENT
+%x STRING
 
 /**
  * Reusable patterns.
@@ -102,11 +109,17 @@ duration            {number}[[:space:]]*(s|min)
 "multipleChoice"    { return KeywordLexemeAction(T_QTYPE_MULTIPLE); }
 "trueFalse"         { return KeywordLexemeAction(T_QTYPE_BOOLEAN); }
 
-{duration}                          { return DurationLexemeAction(); }
-{number}                            { return NumberLexemeAction(); }
-"([^"\\\n]|\\.)*"           { return StringLiteralLexemeAction(); }
-:{identifier}                       { return SymbolRefLexemeAction(); }
-{identifier}                        { return IdentifierLexemeAction(); }
+
+
+{duration}          { return DurationLexemeAction(); }
+{number}            { return NumberLexemeAction(); }
+\"                  { return EnterStringLexemeAction(STRING); }
+<STRING>[^"\\\n]+   { return AppendStringLexemeAction(yytext, yyleng); }
+<STRING>\\.         { return AppendStringLexemeAction(yytext, yyleng); }
+<STRING>\"          { return LeaveStringLexemeAction(); }
+<STRING>\n          { return UnterminatedStringLexemeAction(); }
+:{identifier}       { return SymbolRefLexemeAction(); }
+{identifier}        { return IdentifierLexemeAction(); }
 
 "=="                { return RelationalOperatorLexemeAction(T_EQ); }
 "!="                { return RelationalOperatorLexemeAction(T_NEQ); }

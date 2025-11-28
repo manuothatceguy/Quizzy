@@ -62,6 +62,8 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %token T_IGNORED
 %token T_OPEN_COMMENT
 %token T_CLOSE_COMMENT
+%token T_OPEN_QUOTE
+%token T_CLOSE_QUOTE
 %token UNKNOWN
 
 /** Non-terminals. */
@@ -83,7 +85,7 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %destructor { free($$); } <string>
 %destructor { destroyValueNode($$); } <valueNode>
 %destructor { destroyExpressionNode($$); } <expressionNode>
-%destructor { destroyExpressionNode($$); } <scoringRuleNode>
+%destructor { destroyScoringRuleNode($$); } <scoringRuleNode>
 %destructor { destroyBodyNode($$); } <bodyNode>
 %destructor { destroyConditionalNode($$); } <conditionalNode>
 %destructor { destroyQuestionNode($$); } <questionNode>

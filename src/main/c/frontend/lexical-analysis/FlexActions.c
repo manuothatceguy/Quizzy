@@ -162,10 +162,76 @@ CompilationStatus EOFLexemeAction() {
         status = pushToken(_lexicalAnalyzer, token);
         FlexContext context = currentLexicalAnalyzerContext(_lexicalAnalyzer);
         if (0 < context) {
-            logError(_logger, "Error: El archivo terminó inesperadamente dentro de un contexto (ej. un comentario sin cerrar). Contexto=%d", context);
+            logError(_logger, "El archivo terminó inesperadamente dentro de un contexto (eg. un comentario sin cerrar). Contexto=%d", context);
             status = FAILED;
         }
     }
     destroyToken(token);
     return status;
+}
+
+static char * stringBuffer = NULL;
+static int stringLength = 0;
+static long stringAllocated = 0;
+
+#define STRING_BLOCK_SIZE 1024
+
+CompilationStatus EnterStringLexemeAction(FlexContext context) {
+    if (_logIgnoredLexemes) {
+        Token * token = createToken(_lexicalAnalyzer, T_OPEN_QUOTE);
+        _logTokenAction(__FUNCTION__, token);
+        destroyToken(token);
+    }
+
+    stringLength = 0;
+    if (stringBuffer == NULL) {
+        stringAllocated = STRING_BLOCK_SIZE;
+        stringBuffer = (char *)malloc(stringAllocated);
+    }
+    stringBuffer[0] = '\0';
+    
+    enterLexicalAnalyzerContext(_lexicalAnalyzer, context);
+    return IN_PROGRESS;
+}
+
+CompilationStatus AppendStringLexemeAction(const char * text, int len) {
+    while (stringLength + len + 1 > stringAllocated) {
+        stringAllocated *= 2;
+        stringBuffer = (char *)realloc(stringBuffer, stringAllocated);
+    }
+    
+    memcpy(stringBuffer + stringLength, text, len);
+    stringLength += len;
+    stringBuffer[stringLength] = '\0';
+
+    return IN_PROGRESS;
+}
+
+CompilationStatus LeaveStringLexemeAction() {
+    if (_logIgnoredLexemes) {
+        Token * token = createToken(_lexicalAnalyzer, T_CLOSE_QUOTE);
+        _logTokenAction(__FUNCTION__, token);
+        destroyToken(token);
+    }
+    
+    Token * token = createToken(_lexicalAnalyzer, T_STRING_LITERAL);
+    free(token->lexeme);
+    token->lexeme = strdup(stringBuffer);
+    token->length = stringLength;
+    token->semanticValue->string = strdup(stringBuffer);
+    
+    _logTokenAction(__FUNCTION__, token);
+    leaveLexicalAnalyzerContext(_lexicalAnalyzer);
+    CompilationStatus status = pushToken(_lexicalAnalyzer, token);
+    destroyToken(token);
+    return status;
+}
+
+CompilationStatus UnterminatedStringLexemeAction() {
+    Token * token = createToken(_lexicalAnalyzer, UNKNOWN);
+    _logTokenAction(__FUNCTION__, token);
+    logError(_logger, "String sin cerrar");
+    destroyToken(token);
+    leaveLexicalAnalyzerContext(_lexicalAnalyzer);
+    return FAILED;
 }
