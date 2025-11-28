@@ -104,6 +104,12 @@ duration            {number}[[:space:]]*(s|min)
 
 {duration}                          { return DurationLexemeAction(); }
 {number}                            { return NumberLexemeAction(); }
+\"                  { return EnterStringLexemeAction(); }
+
+\"                              { BEGIN(STRING); }
+<STRING>\\.|<STRING>[^"\\\n]+   { /* consume inside string */ }
+<STRING>\"                      { BEGIN(INITIAL); return StringLiteralLexemeAction(); }
+<STRING>\n                     { /* unterminated string */ return UnknownLexemeAction(); }
 \"[^"\n]*\"                         { return StringLiteralLexemeAction(); }
 :{identifier}                       { return SymbolRefLexemeAction(); }
 {identifier}                        { return IdentifierLexemeAction(); }
