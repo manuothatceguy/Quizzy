@@ -83,12 +83,7 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %destructor { free($$); } <string>
 %destructor { destroyValueNode($$); } <valueNode>
 %destructor { destroyExpressionNode($$); } <expressionNode>
-%destructor { 
-    if ($$ != NULL) {
-        destroyExpressionNode($$->expression);
-        free($$);
-    }
-} <scoringRuleNode>
+%destructor { destroyExpressionNode($$); } <scoringRuleNode>
 %destructor { destroyBodyNode($$); } <bodyNode>
 %destructor { destroyConditionalNode($$); } <conditionalNode>
 %destructor { destroyQuestionNode($$); } <questionNode>
@@ -164,8 +159,8 @@ quiz_attr
 ;
 
 boolean
-	: T_TRUE										{ $$ = ValueSemanticActionFromBoolean(1); }
-	| T_FALSE										{ $$ = ValueSemanticActionFromBoolean(0); }
+	: T_TRUE										{ $$ = ValueSemanticActionFromBoolean(true); }
+	| T_FALSE										{ $$ = ValueSemanticActionFromBoolean(false); }
 ;
 
 scoring_block

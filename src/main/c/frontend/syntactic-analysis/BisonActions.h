@@ -37,7 +37,7 @@ BodyNode * CreateBodyNodeFromMedia(MediaNode * media);
 BodyNode * CreateBodyNodeFromConditional(ConditionalNode * cond);
 
 ScoringNode * ScoringBlockSemanticAction(ListNode * rules);
-QuestionsBlockNode * QuestionsBlockSemanticAction(ListNode * questions, int isShuffled);
+QuestionsBlockNode * QuestionsBlockSemanticAction(ListNode * questions, bool isShuffled);
 MediaNode * MediaBlockSemanticAction(ListNode * items);
 MediaItemNode * MediaItemSemanticAction(MediaType type, char * path, char * alias);
 ConditionalNode * ConditionalSemanticAction(ExpressionNode * condition, char * ifTarget, char * elseTarget);
@@ -63,6 +63,6 @@ ScoringRuleNode * ScoringRuleSemanticAction(ScoringRuleType type, ExpressionNode
 ValueNode * ValueSemanticActionFromString(const char * string);
 ValueNode * ValueSemanticActionFromSymbol(char * symbol);
 ValueNode * ValueSemanticActionFromNumber(double number);
-ValueNode * ValueSemanticActionFromBoolean(int boolean);
+ValueNode * ValueSemanticActionFromBoolean(bool boolean);
 
 #endif

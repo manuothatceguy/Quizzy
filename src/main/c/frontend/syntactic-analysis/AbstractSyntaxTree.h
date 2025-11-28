@@ -143,7 +143,7 @@ struct QuestionNode {
 };
 
 struct QuestionsBlockNode {
-    int isShuffled; // 1 si es {}, 0 si es []
+    bool isShuffled; // 1 si es {}, 0 si es []
     ListNode * questions; 
     ListNode * conditionals; 
 };

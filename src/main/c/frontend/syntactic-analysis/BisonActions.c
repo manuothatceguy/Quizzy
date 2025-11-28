@@ -155,7 +155,7 @@ ScoringNode * ScoringBlockSemanticAction(ListNode * rules) {
     return node;
 }
 
-QuestionsBlockNode * QuestionsBlockSemanticAction(ListNode * questions, int isShuffled) {
+QuestionsBlockNode * QuestionsBlockSemanticAction(ListNode * questions, bool isShuffled) {
     _logSyntacticAnalyzerAction(__FUNCTION__);
     QuestionsBlockNode * node = calloc(1, sizeof(QuestionsBlockNode));
     node->isShuffled = isShuffled;
@@ -382,7 +382,7 @@ ValueNode * ValueSemanticActionFromNumber(double number) {
     return node;
 }
 
-ValueNode * ValueSemanticActionFromBoolean(int boolean) {
+ValueNode * ValueSemanticActionFromBoolean(bool boolean) {
     _logSyntacticAnalyzerAction(__FUNCTION__);
     ValueNode * node = calloc(1, sizeof(ValueNode));
     node->type = VAL_BOOLEAN;
