@@ -5,9 +5,9 @@ quiz {
       type = multipleChoice
       text = "¿Cuál audio pronuncia 'Bonjour'?"
       media {
-        audio("bonjour.mp3" as bon)
-        audio("hola.mp3" as hol)
-        audio("hello.mp3" as hel)
+        audio("src/test/resources/dummy_files/bonjour.mp3" as bon)
+        audio("src/test/resources/dummy_files/hola.mp3" as hol)
+        audio("src/test/resources/dummy_files/hello.mp3" as hel)
       }
       options = [:bon, :hol, :hel]
       answer = :bon
