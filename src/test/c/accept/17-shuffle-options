@@ -1,0 +1,28 @@
+quiz {
+  title = "Test Shuffle de Opciones"
+  
+  questions = {  /* shuffled */
+    question {
+      text = "¿Cuál es la capital de Francia?"
+      type = multipleChoice
+      options = ["París", "Londres", "Madrid", "Berlín", "Roma"]
+      answer = "París"
+      points = 5
+    }
+    
+    question {
+      text = "¿El agua hierve a 100°C?"
+      type = trueFalse
+      answer = true
+      points = 3
+    }
+    
+    question {
+      text = "¿Cuál es 2+2?"
+      type = multipleChoice
+      options = ["1", "2", "3", "4", "5"]
+      answer = "4"
+      points = 2
+    }
+  }
+}

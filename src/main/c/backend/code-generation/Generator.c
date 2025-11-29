@@ -179,7 +179,7 @@ static void _genOpts(QuestionNode * q, int idx, FILE * out) {
     bool multipleAnswers = (q->answer && q->answer->next) ? true : false;
     const char * inputType = multipleAnswers ? "checkbox" : "radio";
     
-    _output(out, "<div style='display:flex; flex-direction:column; gap:10px;'>\n");
+    _output(out, "<div class='options-container' style='display:flex; flex-direction:column; gap:10px;'>\n");
     ListNode * cur = q->options;
     while(cur) {
         ValueNode * v = (ValueNode*)cur->data;
@@ -249,7 +249,7 @@ static void _generatePrologue(FILE * out, Program * p) {
     _output(out, "  <input type='hidden' id='p-timeout' value='%.2f'>\n", pTimeout);
 }
 
-static void _generateQuestion(QuestionNode * q, int idx, FILE * out) {
+static void _generateQuestion(QuestionNode * q, int idx, bool shouldShuffleOptions, FILE * out) {
     if(!q) return;
     double pts = q->points ? q->points->numberValue : 0;
     int qSec = q->time ? _parseTimeToSeconds(q->time) : 0;
@@ -264,8 +264,7 @@ static void _generateQuestion(QuestionNode * q, int idx, FILE * out) {
 
     bool multipleAnswers = (q->answer && q->answer->next) ? true : false;
 
-    _output(out, "data-type='%s' data-p='%.2f' data-case='%s' data-qtime='%d' data-partial='%s' data-multi='%s' data-ans='",
-            q->type ? q->type : "shortAnswer", pts, cs, qSec, pc, booleanStrings[multipleAnswers]);
+    _output(out, "data-type='%s' data-p='%.2f' data-case='%s' data-qtime='%d' data-partial='%s' data-multi='%s' data-shuffle-opts='%s' data-ans='", q->type ? q->type : "shortAnswer", pts, cs, qSec, pc, booleanStrings[multipleAnswers], booleanStrings[shouldShuffleOptions]);
     _genAns(q, out);
     _output(out, "'>\n");
     
@@ -283,11 +282,14 @@ static void _generateQuestion(QuestionNode * q, int idx, FILE * out) {
             opt = opt->next;
         }
     }
-
+    
     if (!hasSymbolOptions) {
         _genMedia(q->media, out);
     }
-    else if(q->type && !strcmp(q->type, "trueFalse")) {
+    
+    if(q->type && !strcmp(q->type, "multipleChoice")) {
+        _genOpts(q, idx, out);
+    } else if(q->type && !strcmp(q->type, "trueFalse")) {
         _output(out, "<div style='display:flex; gap:15px;'>");
         _output(out, "<label class='opt-label' style='flex:1;justify-content:center;'><input type='radio' name='q%d' value='true'> Verdadero</label>", idx);
         _output(out, "<label class='opt-label' style='flex:1;justify-content:center;'><input type='radio' name='q%d' value='false'> Falso</label>", idx);
@@ -295,6 +297,7 @@ static void _generateQuestion(QuestionNode * q, int idx, FILE * out) {
     } else {
         _output(out, "<input type='text' name='q%d' placeholder='Escribe tu respuesta aquí...'>\n", idx);
     }
+    
     _output(out, "<button class='btn-next' onclick='next(this)'>Continuar</button>\n");
     _output(out, "</div>\n");
 }
@@ -303,10 +306,11 @@ static void _generateBody(FILE * out, Program * p) {
     if(!p || !p->quiz) return;
     if(p->quiz->title) _output(out, "<h1>%s</h1>\n", p->quiz->title);
     if(p->quiz->questions) {
+        bool shouldShuffleOptions = p->quiz->questions->isShuffled;
         ListNode * c = p->quiz->questions->questions;
         int i=0;
         while(c) {
-            _generateQuestion((QuestionNode*)c->data, i++, out);
+            _generateQuestion((QuestionNode*)c->data, i++, shouldShuffleOptions, out);
             c = c->next;
         }
     }

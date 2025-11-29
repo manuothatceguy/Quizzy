@@ -24,12 +24,26 @@ lockedIds.forEach(id => {
     }
 });
 
+function shuffleOptions(card) {
+    if (card.dataset.shuffleOpts === 'true') {
+        let optionsContainer = card.querySelector('.options-container');
+        
+        if (optionsContainer) {
+            let labels = Array.from(optionsContainer.querySelectorAll('.opt-label'));
+            for (let i = labels.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                optionsContainer.appendChild(labels[j]);
+            }
+        }
+    }
+}
+
 if (cards.length > 0) {
+    shuffleOptions(cards[0]);
     cards[0].classList.add('active');
     startQTimer(cards[0]);
 }
 
-// Timer Global
 const timerEl = document.getElementById('timer');
 let time = timerEl ? parseInt(timerEl.dataset.sec) : 0;
 let interval;
@@ -99,8 +113,14 @@ function next(btn) {
     let isBonus = lockedIds.has(card.id);
     
     let user = '', correct = false;
+    let partialCredit = card.dataset.partial === 'true';
+    let isMulti = card.dataset.multi === 'true';
+    let earnedPoints = 0;
     
-    if (type.includes('multiple') || type.includes('true')) {
+    if (isMulti) {
+        let checked = Array.from(card.querySelectorAll('input:checked')).map(e => e.value);
+        user = checked.join(',');
+    } else if (type.includes('multiple') || type.includes('true')) {
         let el = card.querySelector('input:checked');
         if (el) user = el.value;
     } else {
@@ -109,22 +129,46 @@ function next(btn) {
     }
     
     if (user) {
-        if (caseSens) {
-            correct = (user === ans);
-        } else {
-            correct = (user.toLowerCase() === ans.toLowerCase());
-        }
-        if (!correct && ans.includes(',')) {
-            if (ans.split(',').some(a => a.trim().toLowerCase() === user.toLowerCase())) {
-                correct = true;
+        if (isMulti && partialCredit) {
+            let correctAnswers = ans.split(',').map(a => a.trim().toLowerCase());
+            let userAnswers = user.split(',').map(a => a.trim().toLowerCase());
+            
+            let correctCount = userAnswers.filter(u => correctAnswers.includes(u)).length;
+            let wrongCount = userAnswers.filter(u => !correctAnswers.includes(u)).length;
+            
+            if (wrongCount === 0 && correctCount > 0) {
+                earnedPoints = (correctCount / correctAnswers.length) * pts;
+                correct = (correctCount === correctAnswers.length); 
+                card.dataset.result = correct ? 'correct' : 'partial';
+            } else {
+                earnedPoints = 0;
+                correct = false;
+                card.dataset.result = 'wrong';
             }
+        } else if (isMulti) {
+            let correctAnswers = ans.split(',').map(a => a.trim().toLowerCase()).sort();
+            let userAnswers = user.split(',').map(a => a.trim().toLowerCase()).sort();
+            correct = JSON.stringify(correctAnswers) === JSON.stringify(userAnswers);
+            card.dataset.result = correct ? 'correct' : 'wrong';
+            earnedPoints = correct ? pts : 0;
+        } else {
+            if (caseSens) {
+                correct = (user === ans);
+            } else {
+                correct = (user.toLowerCase() === ans.toLowerCase());
+            }
+            if (!correct && ans.includes(',')) {
+                if (ans.split(',').some(a => a.trim().toLowerCase() === user.toLowerCase())) {
+                    correct = true;
+                }
+            }
+            card.dataset.result = correct ? 'correct' : 'wrong';
+            earnedPoints = correct ? pts : 0;
         }
     }
     
-    card.dataset.result = correct ? 'correct' : 'wrong';
-    
-    if (correct) {
-        score += pts;
+    if (correct || (partialCredit && earnedPoints > 0)) {
+        score += earnedPoints;
         if (!isBonus) maxScore += pts;
     } else {
         if (!isBonus) {
@@ -144,7 +188,8 @@ function next(btn) {
         let elseNextIndex = elseTarget ? cards.indexOf(elseTarget) : -1;
         
         if ((ifNextIndex === idx + 1) || (elseNextIndex === idx + 1)) {
-            let leftValue; // el l-value!
+            // el l-value!
+            let leftValue;
             if (j.variable === 'score') {
                 leftValue = score;
             } else if (j.variable === 'timeLeft') {
@@ -179,6 +224,7 @@ function next(btn) {
     }
     
     if (nextCard) {
+        shuffleOptions(nextCard);
         nextCard.classList.add('active');
         startQTimer(nextCard);
     } else {
@@ -221,6 +267,9 @@ function finish(to) {
         if (c.dataset.result === 'correct') {
             c.style.border = '3px solid #10b981';
             c.style.background = '#ecfdf5';
+        } else if (c.dataset.result === 'partial') {
+            c.style.border = '3px solid #f59e0b';
+            c.style.background = '#fffbeb';
         } else {
             c.style.border = '3px solid #ef4444';
             c.style.background = '#fef2f2';
