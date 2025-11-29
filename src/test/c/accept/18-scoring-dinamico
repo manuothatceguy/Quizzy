@@ -1,0 +1,26 @@
+quiz {
+  title = "Test Scoring Dinámico"
+  
+  scoring {
+    correct = points * 1.5
+    wrong = -points / 2
+    timeout = -points
+  }
+  
+  questions = [
+    question {
+      text = "¿2 + 2?"
+      type = multipleChoice
+      options = ["3", "4", "5"]
+      answer = "4"
+      points = 10
+    }
+    
+    question {
+      text = "¿3 * 3?"
+      type = shortAnswer
+      answer = "9"
+      points = 20
+    }
+  ]
+}

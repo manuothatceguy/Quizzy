@@ -78,6 +78,7 @@ function startQTimer(c) {
         if (d) d.innerText = cur;
         if (cur <= 0) {
             clearInterval(qInterval);
+            c.dataset.timedOut = 'true';
             c.querySelector('.btn-next')?.click();
         }
     }, 1000);
@@ -106,6 +107,7 @@ function next(btn) {
     card.dataset.processed = 'true';
     
     let pts = parseFloat(card.dataset.p) || 0;
+    let timedOut = card.dataset.timedOut === 'true';
     let pWrong = parseFloat(document.getElementById('p-wrong').value);
     let ans = card.dataset.ans;
     let type = card.dataset.type;
@@ -168,11 +170,16 @@ function next(btn) {
     }
     
     if (correct || (partialCredit && earnedPoints > 0)) {
-        score += earnedPoints;
+        let pointsEarned = correct ? calcCorrect(pts, score, time) : earnedPoints;
+        score += pointsEarned;
         if (!isBonus) maxScore += pts;
     } else {
         if (!isBonus) {
-            score += pWrong;
+            if (timedOut) {
+                score += calcTimeout(pts, score, time);
+            } else {
+                score += calcWrong(pts, score, time);
+            }
             maxScore += pts;
         }
     }

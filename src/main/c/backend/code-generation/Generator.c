@@ -1,5 +1,4 @@
 #include "Generator.h"
-#include "Templates.h"
 #include "../../frontend/syntactic-analysis/AbstractSyntaxTree.h"
 #include "../../support/logging/Logger.h"
 #include <stdio.h>
@@ -96,6 +95,35 @@ static const char * _extractLeftVariable(ExpressionNode * expr) {
         }
     }
     return "score";
+}
+
+static void _generateExpression(ExpressionNode * expr, FILE * out) {
+    if (!expr) {
+        fprintf(out, "0");
+        return;
+    }
+    
+    if (expr->nodeType == EXPRESSION_NODE_TERM) {
+        if (expr->termType == TERM_NUMBER) {
+            fprintf(out, "%.2f", expr->value->numberValue);
+        } else if (expr->termType == TERM_IDENTIFIER || expr->termType == TERM_KEYWORD) {
+            fprintf(out, "%s", expr->identifier);
+        }
+    } else if (expr->nodeType == EXPRESSION_NODE_BINARY) {
+        fprintf(out, "(");
+        _generateExpression(expr->left, out);
+        
+        switch(expr->op) {
+            case OP_ADD: fprintf(out, " + "); break;
+            case OP_SUB: fprintf(out, " - "); break;
+            case OP_MUL: fprintf(out, " * "); break;
+            case OP_DIV: fprintf(out, " / "); break;
+            default: fprintf(out, " + "); break;
+        }
+        
+        _generateExpression(expr->right, out);
+        fprintf(out, ")");
+    }
 }
 
 static char * _readFile(const char * filepath) {
@@ -228,13 +256,14 @@ static void _generatePrologue(FILE * out, Program * p) {
         logInformation(_logger, "Archivo html leído exitosamente");
     } else {
         logCritical(_logger, "No se pudo leer el archivo html");
-        exit(1); // no tiene sentido seguir con la ejecución sin el html, por eso el exit
+        exit(1);
     }
 
     if (p->quiz->time) {
         int sec = _parseTimeToSeconds(p->quiz->time);
         _output(out, "  <div id='timer' class='timer' data-sec='%d'></div>\n", sec);
     }
+    
     double pWrong=0, pTimeout=0;
     if (p->quiz->scoring) {
         ListNode * r = p->quiz->scoring->rules;
@@ -348,6 +377,68 @@ static void _generateEpilogue(FILE * out, Program * p) {
     
     _output(out, "<script>\n");
     
+    if (p->quiz->scoring) {
+        ListNode * r = p->quiz->scoring->rules;
+        
+        _output(out, "function calcCorrect(points, score, timeLeft) { return ");
+        ExpressionNode * correctExpr = NULL;
+        r = p->quiz->scoring->rules;
+        while(r) {
+            ScoringRuleNode * rule = (ScoringRuleNode*)r->data;
+            if (rule->type == SCORING_CORRECT) {
+                correctExpr = rule->expression;
+                break;
+            }
+            r = r->next;
+        }
+        if (correctExpr) {
+            _generateExpression(correctExpr, out);
+        } else {
+            _output(out, "points");
+        }
+        _output(out, "; }\n");
+        
+        _output(out, "function calcWrong(points, score, timeLeft) { return ");
+        ExpressionNode * wrongExpr = NULL;
+        r = p->quiz->scoring->rules;
+        while(r) {
+            ScoringRuleNode * rule = (ScoringRuleNode*)r->data;
+            if (rule->type == SCORING_WRONG) {
+                wrongExpr = rule->expression;
+                break;
+            }
+            r = r->next;
+        }
+        if (wrongExpr) {
+            _generateExpression(wrongExpr, out);
+        } else {
+            _output(out, "0");
+        }
+        _output(out, "; }\n");
+        
+        _output(out, "function calcTimeout(points, score, timeLeft) { return ");
+        ExpressionNode * timeoutExpr = NULL;
+        r = p->quiz->scoring->rules;
+        while(r) {
+            ScoringRuleNode * rule = (ScoringRuleNode*)r->data;
+            if (rule->type == SCORING_TIMEOUT) {
+                timeoutExpr = rule->expression;
+                break;
+            }
+            r = r->next;
+        }
+        if (timeoutExpr) {
+            _generateExpression(timeoutExpr, out);
+        } else {
+            _output(out, "0");
+        }
+        _output(out, "; }\n");
+    } else {
+        _output(out, "function calcCorrect(points, score, timeLeft) { return points; }\n");
+        _output(out, "function calcWrong(points, score, timeLeft) { return 0; }\n");
+        _output(out, "function calcTimeout(points, score, timeLeft) { return 0; }\n");
+    }
+    
     if (p->quiz->questions) {
         _printJumps(p->quiz->questions->conditionals, out);
     } else {
@@ -364,7 +455,7 @@ static void _generateEpilogue(FILE * out, Program * p) {
         logInformation(_logger, "Archivo js leído exitosamente");
     } else {
         logCritical(_logger, "No se pudo leer el archivo js");
-        exit(1); // cuando no puedo leer archivos explota todo con este exit
+        exit(1);
     }
     
     _output(out, "</script>\n</body>\n</html>\n");
