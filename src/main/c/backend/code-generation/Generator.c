@@ -141,6 +141,40 @@ static void _genMedia(MediaNode * m, FILE * out) {
     _output(out, "</div>\n");
 }
 
+static void _genSymbolOption(QuestionNode * q, ValueNode * v, int idx, FILE * out) {
+    if (!q->media || !q->media->items) { // fallback --> mostrar el texto
+        _output(out, "<label class='opt-label'><input type='radio' name='q%d' value='%s'> %s</label>\n", 
+                idx, v->stringValue, v->stringValue);
+        return;
+    }
+    
+    ListNode * cur = q->media->items;
+    while(cur) {
+        MediaItemNode * item = (MediaItemNode*)cur->data;
+        if (item->alias && v->stringValue && 
+            strcmp(item->alias, v->stringValue + 1) == 0) { // salteo el ":"
+            
+            _output(out, "<label class='opt-label' style='display:flex;align-items:center;gap:10px;'>");
+            _output(out, "<input type='radio' name='q%d' value='%s'>", idx, v->stringValue);
+            
+            if (item->type == MEDIA_AUDIO) {
+                _output(out, "<audio controls src='%s' style='max-width:200px;height:35px;'></audio>", item->path);
+            } else if (item->type == MEDIA_IMAGE) {
+                _output(out, "<img src='%s' style='max-width:80px;max-height:80px;border-radius:8px;object-fit:cover;'>", item->path);
+            } else if (item->type == MEDIA_VIDEO) {
+                _output(out, "<video controls src='%s' style='max-width:150px;max-height:100px;border-radius:8px;'></video>", item->path);
+            }
+            
+            _output(out, "</label>\n");
+            return;
+        }
+        cur = cur->next;
+    }
+    
+    _output(out, "<label class='opt-label'><input type='radio' name='q%d' value='%s'> %s (alias no encontrado)</label>\n", 
+            idx, v->stringValue, v->stringValue);
+}
+
 static void _genOpts(QuestionNode * q, int idx, FILE * out) {
     bool multipleAnswers = (q->answer && q->answer->next) ? true : false;
     const char * inputType = multipleAnswers ? "checkbox" : "radio";
@@ -150,10 +184,14 @@ static void _genOpts(QuestionNode * q, int idx, FILE * out) {
     while(cur) {
         ValueNode * v = (ValueNode*)cur->data;
         if(v) {
-            char * s = (v->type == VAL_STRING || v->type == VAL_SYMBOL) ? v->stringValue : "Opción";
-            if(v->type == VAL_NUMBER) { static char b[32]; snprintf(b,32,"%.2f",v->numberValue); s=b; }
-            _output(out, "<label class='opt-label'><input type='%s' name='q%d' value='%s'> %s</label>\n", 
-                    inputType, idx, s, s);
+            if (v->type == VAL_SYMBOL) {
+                _genSymbolOption(q, v, idx, out);
+            } else {
+                char * s = (v->type == VAL_STRING) ? v->stringValue : "Opción";
+                if(v->type == VAL_NUMBER) { static char b[32]; snprintf(b,32,"%.2f",v->numberValue); s=b; }
+                _output(out, "<label class='opt-label'><input type='%s' name='q%d' value='%s'> %s</label>\n", 
+                        inputType, idx, s, s);
+            }
         }
         cur = cur->next;
     }
@@ -236,9 +274,19 @@ static void _generateQuestion(QuestionNode * q, int idx, FILE * out) {
     if(qSec > 0) _output(out, "  <div class='q-timer-badge'>⏳ <span class='q-val'>%d</span>s</div>\n", qSec);
     _output(out, "</div>\n");
 
-    _genMedia(q->media, out);
-    
-    if(q->type && !strcmp(q->type, "multipleChoice")) _genOpts(q, idx, out);
+    bool hasSymbolOptions = false;
+    if (q->options) {
+        ListNode * opt = q->options;
+        while(opt && !hasSymbolOptions) {
+            ValueNode * v = (ValueNode*)opt->data;
+            if (v && v->type == VAL_SYMBOL) hasSymbolOptions = true;
+            opt = opt->next;
+        }
+    }
+
+    if (!hasSymbolOptions) {
+        _genMedia(q->media, out);
+    }
     else if(q->type && !strcmp(q->type, "trueFalse")) {
         _output(out, "<div style='display:flex; gap:15px;'>");
         _output(out, "<label class='opt-label' style='flex:1;justify-content:center;'><input type='radio' name='q%d' value='true'> Verdadero</label>", idx);
