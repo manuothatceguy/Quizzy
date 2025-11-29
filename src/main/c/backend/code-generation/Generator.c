@@ -12,6 +12,7 @@ static Logger * _logger = NULL;
 
 const char * JS_PATH = "src/main/c/backend/domain-specific/quiz-utils/script.js";
 const char * HTML_PATH = "src/main/c/backend/domain-specific/quiz-utils/base.html";
+const char * booleanStrings[] = {"false", "true"};
 
 // Funciones helpers
 
@@ -141,6 +142,9 @@ static void _genMedia(MediaNode * m, FILE * out) {
 }
 
 static void _genOpts(QuestionNode * q, int idx, FILE * out) {
+    bool multipleAnswers = (q->answer && q->answer->next) ? true : false;
+    const char * inputType = multipleAnswers ? "checkbox" : "radio";
+    
     _output(out, "<div style='display:flex; flex-direction:column; gap:10px;'>\n");
     ListNode * cur = q->options;
     while(cur) {
@@ -148,7 +152,8 @@ static void _genOpts(QuestionNode * q, int idx, FILE * out) {
         if(v) {
             char * s = (v->type == VAL_STRING || v->type == VAL_SYMBOL) ? v->stringValue : "Opción";
             if(v->type == VAL_NUMBER) { static char b[32]; snprintf(b,32,"%.2f",v->numberValue); s=b; }
-            _output(out, "<label class='opt-label'><input type='radio' name='q%d' value='%s'> %s</label>\n", idx, s, s);
+            _output(out, "<label class='opt-label'><input type='%s' name='q%d' value='%s'> %s</label>\n", 
+                    inputType, idx, s, s);
         }
         cur = cur->next;
     }
@@ -169,7 +174,7 @@ static void _genAns(QuestionNode * q, FILE * out) {
     } else if(q->answer->data) {
         ValueNode * v = (ValueNode*)q->answer->data;
         if(v->type==VAL_STRING || v->type==VAL_SYMBOL) _output(out,"%s",v->stringValue);
-        else if(v->type==VAL_BOOLEAN) _output(out,"%s",v->booleanValue?"true":"false");
+        else if(v->type==VAL_BOOLEAN) _output(out,"%s",booleanStrings[v->booleanValue]);
         else if(v->type==VAL_NUMBER) _output(out,"%.2f",v->numberValue);
     }
 }
@@ -216,9 +221,13 @@ static void _generateQuestion(QuestionNode * q, int idx, FILE * out) {
     else _output(out, "q_%d", idx);
     _output(out, "' ");
     
-    const char * cs = (q->caseSensitive && q->caseSensitive->booleanValue) ? "true":"false";
-    _output(out, "data-type='%s' data-p='%.2f' data-case='%s' data-qtime='%d' data-ans='",
-            q->type ? q->type : "shortAnswer", pts, cs, qSec);
+    const char * cs = (q->caseSensitive && q->caseSensitive->booleanValue) ? booleanStrings[true]:booleanStrings[false];
+    const char * pc = (q->partialCredit && q->partialCredit->booleanValue) ? booleanStrings[true]:booleanStrings[false];
+
+    bool multipleAnswers = (q->answer && q->answer->next) ? true : false;
+
+    _output(out, "data-type='%s' data-p='%.2f' data-case='%s' data-qtime='%d' data-partial='%s' data-multi='%s' data-ans='",
+            q->type ? q->type : "shortAnswer", pts, cs, qSec, pc, booleanStrings[multipleAnswers]);
     _genAns(q, out);
     _output(out, "'>\n");
     
@@ -294,7 +303,7 @@ static void _generateEpilogue(FILE * out, Program * p) {
     }
 
     bool shouldShuffle = (p->quiz->questions && p->quiz->questions->isShuffled);
-    _output(out, "const shouldShuffle = %s;\n", shouldShuffle ? "true" : "false");
+    _output(out, "const shouldShuffle = %s;\n", booleanStrings[shouldShuffle]);
     
     char * jsContent = _readFile(JS_PATH);
     if (jsContent) {

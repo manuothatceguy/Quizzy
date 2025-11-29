@@ -86,7 +86,7 @@ struct ValueNode {
     union {
         char * stringValue;
         double numberValue;
-        int booleanValue;
+        bool booleanValue;
     };
 };
 
