@@ -125,8 +125,8 @@ duration            {number}[[:space:]]*(s|min)
 "!="                { return RelationalOperatorLexemeAction(T_NEQ); }
 ">="                { return RelationalOperatorLexemeAction(T_GTE); }
 "<="                { return RelationalOperatorLexemeAction(T_LTE); }
-">"                 { return PunctuationLexemeAction('>'); }
-"<"                 { return PunctuationLexemeAction('<'); }
+">"                 { return RelationalOperatorLexemeAction(T_GT); }
+"<"                 { return RelationalOperatorLexemeAction(T_LT); }
 
 "-"                 { return ArithmeticOperatorLexemeAction(T_SUB); }
 "*"                 { return ArithmeticOperatorLexemeAction(T_MUL); }

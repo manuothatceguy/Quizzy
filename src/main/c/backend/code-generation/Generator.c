@@ -10,6 +10,9 @@
 
 static Logger * _logger = NULL;
 
+const char * JS_PATH = "src/main/c/backend/domain-specific/quiz-utils/script.js";
+const char * HTML_PATH = "src/main/c/backend/domain-specific/quiz-utils/base.html";
+
 // Funciones helpers
 
 void _shutdownGeneratorModule() {
@@ -69,6 +72,57 @@ static double _extractValue(ExpressionNode * expr) {
     return 0.0;
 }
 
+static const char * _extractOperator(ExpressionNode * expr) {
+    if (!expr || expr->nodeType != EXPRESSION_NODE_BINARY) return ">=";
+    switch (expr->op) {
+        case OP_EQ:  return "==";
+        case OP_NEQ: return "!=";
+        case OP_GT:  return ">";
+        case OP_LT:  return "<";
+        case OP_GTE: return ">=";
+        case OP_LTE: return "<=";
+        default:     return ">=";
+    }
+}
+
+static const char * _extractLeftVariable(ExpressionNode * expr) {
+    if (!expr || expr->nodeType != EXPRESSION_NODE_BINARY) return "score";
+    if (!expr->left) return "score";
+    
+    if (expr->left->nodeType == EXPRESSION_NODE_TERM) {
+        if (expr->left->termType == TERM_IDENTIFIER || expr->left->termType == TERM_KEYWORD) {
+            return expr->left->identifier;
+        }
+    }
+    return "score";
+}
+
+static char * _readFile(const char * filepath) {
+    FILE * f = fopen(filepath, "r");
+    if (!f) {
+        logCritical(_logger, "No se pudo abrir %s", filepath); // debería explotar todo porque supuestamente estos archivos no cambian con el tiempo ergo difícil llegar a este caso
+        return NULL;
+    }
+    
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    
+    char * content = malloc(size + 1);
+    if (!content) {
+        logCritical(_logger, "No hay memoria para leer %s", filepath);
+        fclose(f);
+        return NULL;
+    }
+    
+    fread(content, 1, size, f);
+    content[size] = '\0';
+    fclose(f);
+    
+    logDebugging(_logger, "Archivo %s leído correctamente (%ld bytes)", filepath, size);
+    return content;
+}
+
 // Funciones de generacion de cuerpo
 
 static void _genMedia(MediaNode * m, FILE * out) {
@@ -124,7 +178,15 @@ static void _genAns(QuestionNode * q, FILE * out) {
 
 static void _generatePrologue(FILE * out, Program * p) {
     
-    fprintf(out, "%s", HTML_HEAD);
+    char * htmlContent = _readFile(HTML_PATH);
+    if(htmlContent){
+        _output(out, "%s", htmlContent);
+        free(htmlContent);
+        logInformation(_logger, "Archivo html leído exitosamente");
+    } else {
+        logCritical(_logger, "No se pudo leer el archivo html");
+        exit(1); // no tiene sentido seguir con la ejecución sin el html, por eso el exit
+    }
 
     if (p->quiz->time) {
         int sec = _parseTimeToSeconds(p->quiz->time);
@@ -198,10 +260,22 @@ static void _printJumps(ListNode * list, FILE * out) {
     while(list) {
         ConditionalNode * c = (ConditionalNode*)list->data;
         if (c->condition->nodeType == EXPRESSION_NODE_BINARY && c->ifTargetId) {
-            double t = _extractValue(c->condition->right);
-            _output(out, "  { threshold: %.2f, target: '", t);
+            const char * op = _extractOperator(c->condition);
+            const char * leftVar = _extractLeftVariable(c->condition);
+            double threshold = _extractValue(c->condition->right);
+            
+            _output(out, "  { op: '%s', variable: '%s', threshold: %.2f, target: '", 
+                    op, leftVar, threshold);
             _printCleanId(out, c->ifTargetId);
-            _output(out, "' },\n");
+            _output(out, "'");
+            
+            if (c->elseTargetId) {
+                _output(out, ", elseTarget: '");
+                _printCleanId(out, c->elseTargetId);
+                _output(out, "'");
+            }
+            
+            _output(out, " },\n");
         }
         list = list->next;
     }
@@ -209,18 +283,28 @@ static void _printJumps(ListNode * list, FILE * out) {
 }
 
 static void _generateEpilogue(FILE * out, Program * p) {
-    // Cerramos contenedores
     _output(out, "  <div id='result' class='result-box'></div>\n</div>\n");
     
-    // Script
     _output(out, "<script>\n");
     
-    // 1. Datos dinámicos (Saltos)
-    if (p->quiz->questions) _printJumps(p->quiz->questions->conditionals, out);
-    else _output(out, "const jumps = [];\n");
+    if (p->quiz->questions) {
+        _printJumps(p->quiz->questions->conditionals, out);
+    } else {
+        _output(out, "const jumps = [];\n");
+    }
+
+    bool shouldShuffle = (p->quiz->questions && p->quiz->questions->isShuffled);
+    _output(out, "const shouldShuffle = %s;\n", shouldShuffle ? "true" : "false");
     
-    // 2. Lógica Estática (Plantilla JS)
-    fprintf(out, "%s", JS_SCRIPT);
+    char * jsContent = _readFile(JS_PATH);
+    if (jsContent) {
+        _output(out, "%s", jsContent);
+        free(jsContent);
+        logInformation(_logger, "Archivo js leído exitosamente");
+    } else {
+        logCritical(_logger, "No se pudo leer el archivo js");
+        exit(1); // cuando no puedo leer archivos explota todo con este exit
+    }
     
     _output(out, "</script>\n</body>\n</html>\n");
 }

@@ -1,0 +1,49 @@
+quiz {
+  title = "Test Operadores Relacionales"
+  
+  questions = [
+    question {
+      id = q1
+      text = "Pregunta inicial"
+      type = trueFalse
+      answer = true
+      points = 5
+    }
+    
+    if (score == 5) next = question("perfect")
+    
+    question {
+      id = perfect
+      text = "¡Perfecto! Sacaste exactamente 5 puntos"
+      type = trueFalse
+      answer = true
+      points = 2
+    }
+    
+    question {
+      id = q2
+      text = "Segunda pregunta"
+      type = trueFalse
+      answer = true
+      points = 3
+    }
+    
+    if (score < 5) next = question("retry")
+    
+    question {
+      id = retry
+      text = "Tienes menos de 5 puntos, sigue intentando"
+      type = trueFalse
+      answer = true
+      points = 1
+    }
+    
+    question {
+      id = final
+      text = "Pregunta final"
+      type = trueFalse
+      answer = true
+      points = 1
+    }
+  ]
+}

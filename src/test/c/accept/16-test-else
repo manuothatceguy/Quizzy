@@ -1,0 +1,40 @@
+quiz {
+  title = "test if else"
+  
+  questions = [
+    question {
+      id = q1
+      text = "¿El agua hierve a 100°C?"
+      type = trueFalse
+      answer = true
+      points = 5
+    }
+    
+    if (score == 5) next = question("perfect")
+    else next = question("retry")
+    
+    question {
+      id = perfect
+      text = "Perfecto! Respondiste bien la primera"
+      type = trueFalse
+      answer = true
+      points = 3
+    }
+    
+    question {
+      id = retry
+      text = "Fallaste la primera, pero puedes mejorar"
+      type = trueFalse
+      answer = true
+      points = 1
+    }
+    
+    question {
+      id = final
+      text = "Pregunta final"
+      type = trueFalse
+      answer = true
+      points = 2
+    }
+  ]
+}

@@ -32,6 +32,20 @@ const char * HTML_HEAD =
 const char * JS_SCRIPT =
 "const cards=Array.from(document.querySelectorAll('.question-card'));let idx=0,score=0,maxScore=0,qInterval=null;"
 "const lockedIds=new Set(jumps.map(j=>j.target));"
+
+"if(shouldShuffle){"
+"  for(let i=cards.length-1;i>0;i--){"
+"    if(!lockedIds.has(cards[i].id)){"
+"      let j=Math.floor(Math.random()*(i+1));"
+"      while(j>0&&lockedIds.has(cards[j].id))j--;"
+"      if(j>=0&&!lockedIds.has(cards[j].id)){"
+"        let temp=cards[i];cards[i]=cards[j];cards[j]=temp;"
+"      }"
+"    }"
+"  }"
+"}"
+"const cards=Array.from(document.querySelectorAll('.question-card'));let idx=0,score=0,maxScore=0,qInterval=null;"
+"const lockedIds=new Set(jumps.map(j=>j.target));"
 // Bonus
 "lockedIds.forEach(id=>{"
 "  let el=document.getElementById(id);"
