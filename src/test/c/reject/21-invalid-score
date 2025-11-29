@@ -1,0 +1,10 @@
+quiz {
+  title = "Test Scoring Inválido"
+  scoring {
+    correct = invalidVar * 2  
+    wrong = points / 0         /* division por 0 */
+  }
+  questions = [
+    question { text = "Test" type = shortAnswer answer = "x" points = 5 }
+  ]
+}

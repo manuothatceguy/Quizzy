@@ -1,0 +1,15 @@
+quiz {
+  title = "Test Symbol Inválido"
+  questions = [
+    question {
+      text = "Audio test"
+      type = multipleChoice
+      media {
+        audio("a.mp3" as aud1)
+      }
+      options = [:aud1, :aud2]  /* Error: aud2 no existe */
+      answer = :aud1
+      points = 5
+    }
+  ]
+}
